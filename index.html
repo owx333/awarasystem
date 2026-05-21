@@ -4327,7 +4327,7 @@ const App = {
     const pend = parseFloat(document.getElementById('ec-pend').value) || 0;
     const pot = parseFloat(document.getElementById('ec-pot').value) || 0;
     const { bersih, pct } = calcGajiBersih(pend, pot);
-    document.getElementById('ec-bersih').textContent = 'RM ' + fmt(bersih);
+    document.getElementById('ec-bersih').textContent = 'RM ' + bersih.toFixed(2);
     document.getElementById('ec-pct').textContent = pct.toFixed(2) + '%';
   },
   
