@@ -1921,7 +1921,7 @@ const Logic = {
 // ==================== UI HELPERS ====================
 function fmt(n) { 
   if (n === null || n === undefined) return '0';
-  return Number(n).toLocaleString('en-MY', { maximumFractionDigits: 0 }); 
+  return Number(n).toLocaleString('en-MY', { return Number(n).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
 }
 function fmtK(n) {
   if (!n || n === 0) return '0';
