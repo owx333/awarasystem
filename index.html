@@ -899,7 +899,7 @@ const Permissions = {
   // CS can only edit their own freshly-created cases (handled by case-level logic)
   canEditCustomerInfo: u => ['admin', 'manager', 'leader', 'solo'].includes(u?.role),
   
-  // Can edit ANY case (Stage 2, status updates) regardless of who owns it — Boss + Manager + Leader (their team) + Solo (their own)
+  // Can edit ANY case (stage 3, status updates) regardless of who owns it — Boss + Manager + Leader (their team) + Solo (their own)
   canEditAllCases: u => ['admin', 'manager'].includes(u?.role),
   
   // Can manage Staff (add/edit/delete users) — Boss + Manager (no delete for Manager)
@@ -1027,7 +1027,7 @@ function generateSeedCases() {
       const potongan = Math.floor(pendapatan * (0.1 + Math.random() * 0.4));
       const { bersih, pct } = calcGajiBersih(pendapatan, potongan);
       
-      // Stage 2 data (only if past 'new')
+      // stage 3 data (only if past 'new')
       let pkg = null, amt = null, tenor = null, bulanan = null, caseType = null;
       let approvedAmt = null, disburseAmt = null;
       let dateContacted = null, dateSubmitted = null, dateApproved = null, dateDisbursed = null, dateRejected = null;
@@ -1083,7 +1083,7 @@ function generateSeedCases() {
         gaji_bersih: bersih,
         gaji_bersih_pct: pct,
         date_payslip: date.toISOString().slice(0,10),
-        // Stage 2
+        // stage 3
         package_id: pkg ? pkg.id : null,
         loan_amount: amt,
         tenor: tenor,
@@ -2457,12 +2457,12 @@ const App = {
         ${c.status === 'new' ? `
           <button class="submit-btn" style="margin-bottom: 8px; background: var(--primary); color: var(--accent); font-size: 13px;" onclick="App.updateCaseStatus('${c.id}', 'contacted')">→ Mark as Contacted (Call customer first)</button>
         ` : ''}
-        <button class="submit-btn" style="margin-bottom: 14px; background: var(--accent); color: var(--primary-dark); font-size: 13px;" onclick="App.openProcessCase('${c.id}')">+ Propose Package (Stage 2)</button>
+        <button class="submit-btn" style="margin-bottom: 14px; background: var(--accent); color: var(--primary-dark); font-size: 13px;" onclick="App.openProcessCase('${c.id}')">+ Propose Package (stage 3)</button>
       ` : ''}
       
       ${stage2Done ? `
         <div style="background: var(--primary-glow); border-radius: 12px; padding: 14px; margin: 12px 0; border: 1px solid var(--primary);">
-          <div style="font-size: 10px; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px;">Stage 2 · Loan Package <span class="stage-pill s2">Leader: ${leader?.name}</span></div>
+          <div style="font-size: 10px; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px;">stage 3 · Loan Package <span class="stage-pill s2">Leader: ${leader?.name}</span></div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
             <div><span style="color: var(--ink-3);">Pakej:</span> <strong>${pkg?.name || '—'}</strong></div>
             <div><span style="color: var(--ink-3);">Loan:</span> <strong>${fmtRM(c.loan_amount)}</strong></div>
@@ -2489,7 +2489,7 @@ const App = {
         </div>
       ` : `
         <div style="background: var(--warning-bg); border-radius: 12px; padding: 14px; margin: 12px 0; border: 1px dashed var(--warning); text-align: center;">
-          <div style="font-size: 11px; color: var(--warning); font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;">Stage 2 · Belum Diproses</div>
+          <div style="font-size: 11px; color: var(--warning); font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;">stage 3 · Belum Diproses</div>
           <div style="font-size: 12px; color: var(--ink-2); margin-top: 4px;">Menunggu ${leader?.name} untuk call customer & pilih pakej.</div>
         </div>
       `}
@@ -2516,7 +2516,7 @@ const App = {
       ` : ''}
       
       ${canProcessStage2 && stage2Done && c.status !== 'disbursed' && c.status !== 'rejected' ? `
-        <button class="btn-secondary" onclick="App.openProcessCase('${c.id}')">Edit Stage 2 Details</button>
+        <button class="btn-secondary" onclick="App.openProcessCase('${c.id}')">Edit stage 3 Details</button>
       ` : ''}
       
       ${canEditCustomerInfo ? `
@@ -2701,12 +2701,12 @@ const App = {
     const isEdit = c.package_id !== null;
     
     showModal(`
-      <div class="modal-title">${isEdit ? 'Edit Loan Details' : 'Propose Package'} · Stage 2</div>
+      <div class="modal-title">${isEdit ? 'Edit Loan Details' : 'Propose Package'} · stage 3</div>
       <div class="modal-sub">${c.customer_name} · Gaji Bersih: ${fmtRM(c.gaji_bersih)} (${c.gaji_bersih_pct.toFixed(0)}%)</div>
       
       ${!isEdit && c.status === 'new' ? `
         <div class="info-banner info" style="margin-bottom: 14px;">
-          <strong>Stage 2 flow:</strong> Contact customer first, faham keperluan dia, baru fill ini. Status akan tukar ke <strong>Proposed</strong>.
+          <strong>stage 3 flow:</strong> Contact customer first, faham keperluan dia, baru fill ini. Status akan tukar ke <strong>Proposed</strong>.
         </div>
       ` : ''}
       <div class="form-group">
@@ -2739,7 +2739,7 @@ const App = {
       
       <div class="form-group">
         <label>Bulanan (RM) </label>
-        <input type="number" id="pc-bulanan-input" value="${c.bulanan ? Math.round(c.bulanan * 100) / 100 : ''}" min="0" step="0.01" inputmode="decimal" placeholder="auto-calc atau manual">
+        <input type="number" id="pc-bulanan-input" value="${c.bulanan ? Math.round(c.bulanan * 100) / 100 : ''}" min="0" step="0.01" inputmode="decimal" placeholder="bulanan">
      
       </div>
       
@@ -2819,7 +2819,7 @@ const App = {
     }
     
     DB.updateCase(caseId, updates);
-    toast('Package proposed · Stage 2 saved');
+    toast('Package proposed · stage 3 saved');
     hideModal();
     this.render();
   },
@@ -2830,7 +2830,7 @@ const App = {
     
     // Open status-specific form based on target status
     if (newStatus === 'proposed') {
-      // PROPOSED requires filling in loan package (Stage 2 form)
+      // PROPOSED requires filling in loan package (stage 3 form)
       // If already has package, just update status; otherwise open form
       if (c.package_id) {
         const today = new Date().toISOString().slice(0,10);
@@ -3255,7 +3255,7 @@ const App = {
       
       ${newCases.length > 0 ? `
         <div class="info-banner" style="background: var(--accent); border-left-color: var(--accent-dark); color: var(--primary-dark);">
-          <strong>${stats.newCount} new payslip${stats.newCount > 1 ? 's' : ''} awaiting Stage 2.</strong> Tap below → langsung buka form untuk isi Pakej / Loan / Tenor.
+          <strong>${stats.newCount} new payslip${stats.newCount > 1 ? 's' : ''} awaiting stage 3.</strong> Tap below → langsung buka form untuk isi Pakej / Loan / Tenor.
         </div>
         <div class="case-list" style="margin-top: 8px;">
           ${newCases.map(c => this.newCaseQuickCard(c)).join('')}
@@ -3792,7 +3792,7 @@ const App = {
       gaji_bersih: bersih,
       gaji_bersih_pct: pct,
       date_payslip: date,
-      // Stage 2 empty
+      // stage 3 empty
       package_id: null,
       loan_amount: null,
       tenor: null,
@@ -4314,8 +4314,8 @@ const App = {
       </div>
       
       ${c.package_id ? `
-        <div style="font-size: 11px; color: var(--ink-3); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; margin: 16px 0 8px;">Stage 2 · Loan Details</div>
-        <div class="info-banner info" style="margin-bottom: 12px; font-size: 11px;">To edit Stage 2 (pakej/loan), use "Edit Stage 2 Details" button from case detail.</div>
+        <div style="font-size: 11px; color: var(--ink-3); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; margin: 16px 0 8px;">stage 3 · Loan Details</div>
+        <div class="info-banner info" style="margin-bottom: 12px; font-size: 11px;">To edit stage 3 (pakej/loan), use "Edit stage 3 Details" button from case detail.</div>
       ` : ''}
       
       <button class="submit-btn" onclick="App.saveEditCustomer('${caseId}')">Save Changes</button>
@@ -5659,7 +5659,7 @@ const App = {
       <div class="section-header"><div class="section-title">💵 Loan Amount Options</div></div>
       <div style="padding: 0 20px;">
         <div style="background: var(--cream-2); border-radius: 14px; padding: 14px; border: 1px solid var(--border-2);">
-          <div style="font-size: 11px; color: var(--ink-3); margin-bottom: 10px;">Loan amount dropdown options in Stage 2 form.</div>
+          <div style="font-size: 11px; color: var(--ink-3); margin-bottom: 10px;">Loan amount dropdown options in stage 3 form.</div>
           ${this.renderListEditor('loan_amounts', draft.loan_amounts, 'amount', true)}
         </div>
       </div>
