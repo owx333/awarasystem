@@ -278,9 +278,7 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 .case-status.disbursed { background: var(--primary); color: var(--accent); }
 .case-status.pending { background: #F0E4FF; color: #6B3FB8; }
 .case-status.rejected { background: var(--danger-bg); color: var(--danger); }
-.case-status.potential { background: #E3F6E8; color: #1E7E3A; }
-.case-status.onhold { background: #FFF0E0; color: #C25F00; }
-  
+
 /* Contact buttons */
 .contact-row { display: flex; gap: 8px; margin-top: 8px; }
 .contact-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 13px; transition: opacity 0.2s; }
@@ -843,7 +841,7 @@ LEADER_KFI_TIERS = DEFAULT_SETTINGS.commission.leader_kfi.slice().sort((a,b) => 
 SOLO_KFI_TIERS = DEFAULT_SETTINGS.commission.solo_kfi.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
 
 // Status flow (still hardcoded — changing this needs developer review)
-const STATUSES = ['new', 'contacted', 'proposed', 'submitted', 'approved', 'disbursed', 'pending', 'rejected', 'potential', 'onhold'];
+const STATUSES = ['new', 'contacted', 'proposed', 'submitted', 'approved', 'disbursed', 'pending', 'rejected'];
 const STATUS_LABELS = {
   new: 'New Payslip',
   contacted: 'Contacted',
@@ -852,9 +850,7 @@ const STATUS_LABELS = {
   approved: 'Approved',
   disbursed: 'Disbursed',
   pending: 'Pending',
-  rejected: 'Rejected'，
-  potential: 'Potential',
-  onhold: 'On Hold'
+  rejected: 'Rejected'
 };
 const STATUS_FLOW = {
   new:        ['contacted', 'pending', 'rejected'],
@@ -1452,7 +1448,7 @@ const Auth = {
 
 // ==================== BUSINESS LOGIC ====================
 const Logic = {
-  PIPELINE_STATUSES: ['contacted'],
+  PIPELINE_STATUSES: ['contacted', 'proposed', 'submitted', 'approved', 'disbursed', 'pending'],
   KPI_STATUSES: ['submitted', 'approved', 'disbursed'],
   
   isLeaderRole(user) {
@@ -2977,7 +2973,7 @@ const App = {
       
       <div class="form-group">
         <label>Disburse / Payout Amount (RM) *</label>
-        <input type="number" id="ds-amount" value="${c.disburse_amount || defaultDisburse.toFixed(0)}" min="0">
+        <input type="number" id="ds-amount" value="${c.disburse_amount || ''}" min="0">
       </div>
       
       <div class="form-group">
