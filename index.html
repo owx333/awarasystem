@@ -2744,11 +2744,27 @@ if (isLeader && (this.state.tabState.cases || 'mine') === 'team') {
           ${c.disburse_amount ? `<div style="margin-top: 10px; padding: 10px 12px; background: var(--success); color: white; border-radius: 8px; font-size: 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;"><span>Disbursed: ${fmtRM(c.disburse_amount)}</span><span style="font-size: 10px; opacity: 0.8;">${c.date_disbursed ? new Date(c.date_disbursed).toLocaleDateString('en-MY') : ''}</span></div>` : ''}
           ${c.status === 'pending' && c.pending_reason ? `<div style="margin-top: 10px; padding: 10px 12px; background: #F0E4FF; color: #6B3FB8; border-radius: 8px; font-size: 12px; font-weight: 600;"><strong>Pending:</strong> ${c.pending_reason}</div>` : ''}
           ${c.status === 'rejected' && c.rejection_reason ? `<div style="margin-top: 10px; padding: 10px 12px; background: var(--danger-bg); color: var(--danger); border-radius: 8px; font-size: 12px; font-weight: 600;"><strong>Rejected:</strong> ${c.rejection_reason}${c.date_rejected ? ' · ' + new Date(c.date_rejected).toLocaleDateString('en-MY') : ''}</div>` : ''}
-          ${isAdmin && (c.amm_password || c.hrmis_password) ? `
+${isAdminLike && (c.amm_password || c.hrmis_password) ? `
             <div style="margin-top: 10px; padding: 10px 12px; background: var(--cream-2); border-radius: 8px; font-size: 11px; color: var(--ink-2); border: 1px dashed var(--border);">
-              <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin-bottom: 4px;">Submit Credentials (Admin View)</div>
-              ${c.amm_password ? `<div>AMM: <strong>${c.amm_password}</strong></div>` : ''}
+              <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin-bottom: 4px;">Submit Credentials</div>
+              ${c.amm_password ? `<div>ANM: <strong>${c.amm_password}</strong></div>` : ''}
               ${c.hrmis_password ? `<div>HRMIS: <strong>${c.hrmis_password}</strong></div>` : ''}
+            </div>
+          ` : ''}
+          ${isAdminLike ? `
+            <div style="margin-top: 10px; padding: 10px 12px; background: #f0f7ff; border-radius: 8px; border: 1px solid #b3d4f5;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-size: 10px; color: #2563a8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;">Admin Detail</div>
+                <button onclick="App.openAdminDetail('${c.id}')" style="background: #2563a8; color: white; border: none; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;">✏️ Edit</button>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px;">
+                <div><span style="color: var(--ink-3);">Date Email:</span> <strong>${c.date_email ? new Date(c.date_email).toLocaleDateString('en-MY') : '—'}</strong></div>
+                <div><span style="color: var(--ink-3);">Majikan:</span> <strong>${c.majikan || '—'}</strong></div>
+                <div><span style="color: var(--ink-3);">Date Postage:</span> <strong>${c.date_postage ? new Date(c.date_postage).toLocaleDateString('en-MY') : '—'}</strong></div>
+                <div><span style="color: var(--ink-3);">Postage No:</span> <strong>${c.postage_number || '—'}</strong></div>
+                <div style="grid-column: span 2;"><span style="color: var(--ink-3);">Date Receive:</span> <strong>${c.date_receive ? new Date(c.date_receive).toLocaleDateString('en-MY') : '—'}</strong></div>
+                ${c.remark_admin ? `<div style="grid-column: span 2;"><span style="color: var(--ink-3);">Remark Admin:</span> <strong>${c.remark_admin}</strong></div>` : ''}
+              </div>
             </div>
           ` : ''}
         </div>
@@ -2802,6 +2818,54 @@ if (isLeader && (this.state.tabState.cases || 'mine') === 'team') {
       
       <button class="btn-secondary" onclick="hideModal()">Close</button>
     `);
+  },
+  openAdminDetail(caseId) {
+    const c = DB.caseById(caseId);
+    if (!c) return;
+    showModal(`
+      <div class="modal-title">✏️ Edit Admin Detail</div>
+      <div class="modal-sub">${c.customer_name} · ${c.ic || '—'}</div>
+      <div class="form-group">
+        <label>Date Email</label>
+        <input type="date" id="ad-date-email" value="${c.date_email || ''}">
+      </div>
+      <div class="form-group">
+        <label>Majikan</label>
+        <input type="text" id="ad-majikan" placeholder="Nama majikan..." value="${c.majikan || ''}">
+      </div>
+      <div class="form-group">
+        <label>Date Postage</label>
+        <input type="date" id="ad-date-postage" value="${c.date_postage || ''}">
+      </div>
+      <div class="form-group">
+        <label>Postage Number</label>
+        <input type="text" id="ad-postage-number" placeholder="No. tracking / postage..." value="${c.postage_number || ''}">
+      </div>
+      <div class="form-group">
+        <label>Date Receive</label>
+        <input type="date" id="ad-date-receive" value="${c.date_receive || ''}">
+      </div>
+      <div class="form-group">
+        <label>Remark Admin</label>
+        <textarea id="ad-remark-admin" rows="3" placeholder="Catatan admin..." style="width:100%; background: var(--cream-2); border: 1px solid var(--border-2); border-radius: 10px; padding: 10px; font-family: inherit; font-size: 13px; outline: none; resize: vertical;">${c.remark_admin || ''}</textarea>
+      </div>
+      <button class="submit-btn" onclick="App.saveAdminDetail('${caseId}')">💾 Simpan</button>
+      <button class="btn-secondary" onclick="App.viewCase('${caseId}')">Back</button>
+    `);
+  },
+
+  saveAdminDetail(caseId) {
+    const updates = {
+      date_email:     document.getElementById('ad-date-email').value || null,
+      majikan:        document.getElementById('ad-majikan').value.trim() || null,
+      date_postage:   document.getElementById('ad-date-postage').value || null,
+      postage_number: document.getElementById('ad-postage-number').value.trim() || null,
+      date_receive:   document.getElementById('ad-date-receive').value || null,
+      remark_admin:   document.getElementById('ad-remark-admin').value.trim() || null,
+    };
+    DB.updateCase(caseId, updates);
+    toast('Admin detail disimpan ✓');
+    this.viewCase(caseId);
   },
   
   // Boss-only: delete a case permanently from local + Firestore
@@ -4223,7 +4287,13 @@ if (isLeader && (this.state.tabState.cases || 'mine') === 'team') {
       date_disbursed: null,
       status: 'new',
       remarks: [],
-      rejection_reason: null
+      rejection_reason: null,
+      date_email: null,
+      majikan: null,
+      date_postage: null,
+      postage_number: null,
+      date_receive: null,
+      remark_admin: null
     });
     
     // Auto-increment today's payslip count
