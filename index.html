@@ -2550,12 +2550,12 @@ const App = {
     
     // Get base cases (mine or team)
     let cases;
-    if (isLeader && (this.state.tabState.cases || 'mine') === 'team') {
-      // Use ALL cases from team, not just monthly
-      cases = DB.cases().filter(c => c.leader_id === user.id || c.source_cs_id === user.id);
-    } else if (isLeader) {
-      cases = DB.cases().filter(c => c.source_cs_id === user.id || c.leader_id === user.id);
-    } else {
+if (isLeader && (this.state.tabState.cases || 'mine') === 'team') {
+  // Use ALL cases from team, not just monthly
+  cases = DB.cases().filter(c => c.leader_id === user.id);
+} else if (isLeader) {
+  cases = DB.cases().filter(c => c.source_cs_id === user.id);
+} else {
       cases = DB.cases().filter(c => c.source_cs_id === user.id);
     }
     
@@ -2744,7 +2744,7 @@ const App = {
           ${c.disburse_amount ? `<div style="margin-top: 10px; padding: 10px 12px; background: var(--success); color: white; border-radius: 8px; font-size: 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;"><span>Disbursed: ${fmtRM(c.disburse_amount)}</span><span style="font-size: 10px; opacity: 0.8;">${c.date_disbursed ? new Date(c.date_disbursed).toLocaleDateString('en-MY') : ''}</span></div>` : ''}
           ${c.status === 'pending' && c.pending_reason ? `<div style="margin-top: 10px; padding: 10px 12px; background: #F0E4FF; color: #6B3FB8; border-radius: 8px; font-size: 12px; font-weight: 600;"><strong>Pending:</strong> ${c.pending_reason}</div>` : ''}
           ${c.status === 'rejected' && c.rejection_reason ? `<div style="margin-top: 10px; padding: 10px 12px; background: var(--danger-bg); color: var(--danger); border-radius: 8px; font-size: 12px; font-weight: 600;"><strong>Rejected:</strong> ${c.rejection_reason}${c.date_rejected ? ' · ' + new Date(c.date_rejected).toLocaleDateString('en-MY') : ''}</div>` : ''}
-          ${isAdminLike && (c.amm_password || c.hrmis_password) ? `
+          ${isAdmin && (c.amm_password || c.hrmis_password) ? `
             <div style="margin-top: 10px; padding: 10px 12px; background: var(--cream-2); border-radius: 8px; font-size: 11px; color: var(--ink-2); border: 1px dashed var(--border);">
               <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin-bottom: 4px;">Submit Credentials (Admin View)</div>
               ${c.amm_password ? `<div>AMM: <strong>${c.amm_password}</strong></div>` : ''}
@@ -2799,79 +2799,11 @@ const App = {
       ${canDelete ? `
         <button class="btn-secondary" style="background: #FEE; color: var(--danger); border: 1px solid var(--danger); font-weight: 800; margin-top: 14px;" onclick="App.deleteCase('${c.id}')">🗑 Delete Customer (Boss Only · Permanent)</button>
       ` : ''}
-
-      ${isAdminLike ? `
-        <div style="margin-top: 16px; background: #f0f7ff; border-radius: 12px; padding: 14px; border: 1px solid #b3d4f5;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div style="font-size: 10px; color: #2563a8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em;">🔒 Admin Detail</div>
-            <button onclick="App.openAdminDetail('${c.id}')" style="background: #2563a8; color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;">✏️ Edit</button>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-            <div><span style="color: #6b7280;">Date Email:</span> <strong>${c.date_email ? new Date(c.date_email).toLocaleDateString('en-MY') : '—'}</strong></div>
-            <div><span style="color: #6b7280;">Majikan:</span> <strong>${c.majikan || '—'}</strong></div>
-            <div><span style="color: #6b7280;">Date Postage:</span> <strong>${c.date_postage ? new Date(c.date_postage).toLocaleDateString('en-MY') : '—'}</strong></div>
-            <div><span style="color: #6b7280;">Postage No:</span> <strong>${c.postage_number || '—'}</strong></div>
-            <div style="grid-column: span 2;"><span style="color: #6b7280;">Date Receive:</span> <strong>${c.date_receive ? new Date(c.date_receive).toLocaleDateString('en-MY') : '—'}</strong></div>
-          </div>
-          ${c.remark_admin ? `
-            <div style="margin-top: 8px; padding: 8px 10px; background: white; border-radius: 8px; border: 1px solid #d1e3f8; font-size: 12px;">
-              <span style="color: #6b7280; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em;">Remark Admin:</span>
-              <div style="margin-top: 2px; color: #1e3a5f;">${c.remark_admin}</div>
-            </div>
-          ` : `<div style="margin-top: 6px; font-size: 11px; color: #9ca3af; font-style: italic;">Tiada remark admin.</div>`}
-        </div>
-      ` : ''}
+      
       <button class="btn-secondary" onclick="hideModal()">Close</button>
     `);
   },
-  openAdminDetail(caseId) {
-    const c = DB.caseById(caseId);
-    if (!c) return;
-    showModal(`
-      <div class="modal-title">🔒 Admin Detail</div>
-      <div class="modal-sub">${c.customer_name} · ${c.ic || '—'}</div>
-      <div class="form-group">
-        <label>Date Email</label>
-        <input type="date" id="ad-date-email" value="${c.date_email || ''}">
-      </div>
-      <div class="form-group">
-        <label>Majikan</label>
-        <input type="text" id="ad-majikan" placeholder="Nama majikan..." value="${c.majikan || ''}">
-      </div>
-      <div class="form-group">
-        <label>Date Postage</label>
-        <input type="date" id="ad-date-postage" value="${c.date_postage || ''}">
-      </div>
-      <div class="form-group">
-        <label>Postage Number</label>
-        <input type="text" id="ad-postage-number" placeholder="No. tracking / postage..." value="${c.postage_number || ''}">
-      </div>
-      <div class="form-group">
-        <label>Date Receive</label>
-        <input type="date" id="ad-date-receive" value="${c.date_receive || ''}">
-      </div>
-      <div class="form-group">
-        <label>Remark Admin</label>
-        <textarea id="ad-remark-admin" rows="3" placeholder="Catatan admin..." style="width:100%; background: var(--cream-2); border: 1px solid var(--border-2); border-radius: 10px; padding: 10px; font-family: inherit; font-size: 13px; outline: none; resize: vertical;">${c.remark_admin || ''}</textarea>
-      </div>
-      <button class="submit-btn" onclick="App.saveAdminDetail('${caseId}')">💾 Simpan</button>
-      <button class="btn-secondary" onclick="App.viewCase('${caseId}')">Back</button>
-    `);
-  },
-
-  saveAdminDetail(caseId) {
-    const updates = {
-      date_email:     document.getElementById('ad-date-email').value || null,
-      majikan:        document.getElementById('ad-majikan').value.trim() || null,
-      date_postage:   document.getElementById('ad-date-postage').value || null,
-      postage_number: document.getElementById('ad-postage-number').value.trim() || null,
-      date_receive:   document.getElementById('ad-date-receive').value || null,
-      remark_admin:   document.getElementById('ad-remark-admin').value.trim() || null,
-    };
-    DB.updateCase(caseId, updates);
-    toast('Admin detail disimpan ✓');
-    this.viewCase(caseId);
-  },
+  
   // Boss-only: delete a case permanently from local + Firestore
   deleteCase(caseId) {
     const c = DB.caseById(caseId);
@@ -4291,13 +4223,7 @@ const App = {
       date_disbursed: null,
       status: 'new',
       remarks: [],
-      rejection_reason: null,
-      date_email: null,
-      majikan: null,
-      date_postage: null,
-      postage_number: null,
-      date_receive: null,
-      remark_admin: null
+      rejection_reason: null
     });
     
     // Auto-increment today's payslip count
@@ -5857,10 +5783,6 @@ const App = {
           <div class="qa-title">💰 Report C · Disbursement List</div>
           <div class="qa-sub">Customer, IC, Package, Disburse Amount, Date</div>
         </div>
-        <div class="qa-card" onclick="App.exportReport('admin-full')" style="border-left: 4px solid #2563a8;">
-          <div class="qa-title">📋 Report D · Full Admin Report</div>
-          <div class="qa-sub">Semua data ikut format HQ · admin/manager/kerani</div>
-        </div>
       </div>
     `;
   },
@@ -5975,52 +5897,7 @@ const App = {
       rows.push([]);
       rows.push(['', '', '', '', 'TOTAL:', '', '', totalDisburse.toFixed(0)]);
     }
-    if (type === 'admin-full') {
-      filename = `AWARA_Admin_Full_${ym}.csv`;
-      let cases = DB.cases();
-      if (staff !== 'all') cases = cases.filter(c => c.source_cs_id === staff || c.leader_id === staff);
-      if (pkg !== 'all') cases = cases.filter(c => c.package_id === pkg);
-      cases = cases.filter(c => {
-        const d = c.date_submitted || c.date_payslip || '';
-        return d.startsWith(ym);
-      });
-      cases.sort((a,b) => (a.date_submitted||'').localeCompare(b.date_submitted||''));
-
-      rows.push(['FULL ADMIN REPORT', ym]);
-      rows.push(['Generated:', new Date().toLocaleString('en-MY')]);
-      rows.push([]);
-      rows.push(['NO', 'DATE EMAIL', 'STAFF', 'NAMA CUSTOMER', 'NO IC', 'NO H/P', 'PACKAGE', 'TENURE', 'LOAN AMOUNT', 'PAYOUT (RM)', 'ANM', 'HRMIS', 'APPROVED AMOUNT', 'APPROVED DATE', 'DISBURSE DATE', 'MAJIKAN', 'DATE POSTAGE', 'POSTAGE NUMBER', 'DATE RECEIVE', 'STATUS / REMARK', 'REMARK ADMIN']);
-
-      let no = 1;
-      cases.forEach(c => {
-        const cs = DB.user(c.source_cs_id);
-        const p = LOAN_PACKAGES.find(x => x.id === c.package_id);
-        const remarks = (c.remarks || []).map(r => r.text).join(' | ');
-        rows.push([
-          no++,
-          c.date_email || '',
-          cs?.name || c.source_cs_id || '',
-          c.customer_name || '',
-          c.ic || '',
-          c.phone || '',
-          p?.name || '',
-          c.tenor || '',
-          (c.loan_amount || 0).toFixed(2),
-          (c.disburse_amount || c.approved_amount || c.loan_amount || 0).toFixed(2),
-          c.amm_password || '',
-          c.hrmis_password || '',
-          (c.approved_amount || 0).toFixed(2),
-          c.date_approved || '',
-          c.date_disbursed || '',
-          c.majikan || '',
-          c.date_postage || '',
-          c.postage_number || '',
-          c.date_receive || '',
-          STATUS_LABELS[c.status] + (remarks ? ' · ' + remarks : ''),
-          c.remark_admin || ''
-        ]);
-      });
-    }
+    
     if (rows.length <= 4) { toast('No data for this filter'); return; }
     
     const csv = rows.map(r => r.map(v => `"${String(v == null ? '' : v).replace(/"/g,'""')}"`).join(',')).join('\n');
