@@ -6903,13 +6903,14 @@ async function bootstrap() {
     let changed = false;
 
     // Add HQ user if not exists
-    if (!users.find(u => u.role === 'hq')) {
+    if (!users.find(u => u.id === 'hq')) {
       users.push({ id: 'hq', name: 'HQ', role: 'hq', branch_id: 'hq', leader_id: null, password: '1234' });
       changed = true;
     }
 
     // Ensure branches exist in storage
-    if (!DB.get(DB.K.branches, null) || DB.branches().length === 0) {
+    const storedBranches = DB.get(DB.K.branches);
+    if (!storedBranches || storedBranches.length === 0) {
       DB.saveBranches(SEED_BRANCHES);
     }
 
