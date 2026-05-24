@@ -221,7 +221,7 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 .persona-bar button.active { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); font-weight: 700; }
 
 .app { max-width: 480px; margin: 0 auto; background: var(--cream); min-height: calc(100vh - 40px); position: relative; box-shadow: 0 0 60px rgba(15, 81, 50, 0.08); }
-.screen { display: none; padding-bottom: 100px; }
+.screen { display: none; padding-bottom: 140px; }
 .screen.active { display: block; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -1242,7 +1242,8 @@ const DB = {
     users: 'awara_users', cases: 'awara_cases', activities: 'awara_activities', 
     session: 'awara_session', customer_notes: 'awara_customer_notes',
     seen: 'awara_seen', koperasi: 'awara_koperasi', announcements: 'awara_announcements',
-    settings: 'awara_settings', branches: 'awara_branches'
+    settings: 'awara_settings', branches: 'awara_branches',
+    notifications: 'awara_notifications', loginAttempts: 'awara_login_attempts'
   },
   
   get(key, def = []) {
@@ -1272,7 +1273,12 @@ const DB = {
   // Branches
   branches() { return this.get(this.K.branches, SEED_BRANCHES); },
   branch(id) { return this.branches().find(b => b.id === id); },
-  saveBranches(list) { this.set(this.K.branches, list); },
+  saveBranches(list) { 
+    this.set(this.K.branches, list);
+    if (window.Cloud?.connected) {
+      list.forEach(b => window.Cloud.setDoc('branches', b.id, b));
+    }
+  },
   updateUser(id, updates) {
     const users = this.users();
     const idx = users.findIndex(u => u.id === id);
@@ -1398,6 +1404,28 @@ const DB = {
     cases[idx] = { ...before, ...updates };
     this.set(this.K.cases, cases);
     if (window.Cloud?.connected) window.Cloud.setDoc('cases', id, cases[idx]);
+    
+    // Notify CS and Leader if editor is admin/manager/hq and there are real changes
+    const editorRole = user?.role;
+    if (['admin', 'manager', 'hq'].includes(editorRole) && Object.keys(changes).length > 0) {
+      const updatedCase = cases[idx];
+      const changedFields = Object.keys(changes);
+      const isStatusChange = changedFields.includes('status');
+      const notifTitle = isStatusChange
+        ? `Status dikemaskini: ${STATUS_LABELS[changes.status?.to] || changes.status?.to}`
+        : `Maklumat pelanggan dikemaskini`;
+      const notifBody = `${updatedCase.customer_name} · dikemaskini oleh ${user?.name || 'Admin'}${isStatusChange ? ` → ${STATUS_LABELS[changes.status?.to] || changes.status?.to}` : ` (${changedFields.filter(f => f !== 'status').slice(0,3).join(', ')})`}`;
+      
+      // Notify CS
+      if (updatedCase.source_cs_id && updatedCase.source_cs_id !== user?.id) {
+        this.addNotification(updatedCase.source_cs_id, { title: notifTitle, body: notifBody, caseId: id });
+      }
+      // Notify Leader
+      if (updatedCase.leader_id && updatedCase.leader_id !== user?.id) {
+        this.addNotification(updatedCase.leader_id, { title: notifTitle, body: notifBody, caseId: id });
+      }
+    }
+    
     return cases[idx];
   },
   
@@ -1558,7 +1586,55 @@ const DB = {
   // Session
   session() { return this.get(this.K.session, null); },
   setSession(userId) { this.set(this.K.session, { userId, loginAt: Date.now() }); },
-  clearSession() { localStorage.removeItem(this.K.session); }
+  clearSession() { localStorage.removeItem(this.K.session); },
+
+  // ── Notifications ──
+  notifications(userId) {
+    const all = this.get(this.K.notifications, {});
+    return (all[userId] || []).sort((a,b) => b.ts - a.ts);
+  },
+  addNotification(userId, notif) {
+    const all = this.get(this.K.notifications, {});
+    if (!all[userId]) all[userId] = [];
+    all[userId].unshift({ id: 'n' + Date.now() + Math.random().toString(36).slice(2,6), ts: Date.now(), read: false, ...notif });
+    // Keep last 50 per user
+    all[userId] = all[userId].slice(0, 50);
+    this.set(this.K.notifications, all);
+    if (window.Cloud?.connected) window.Cloud.setDoc('notifications', userId, { userId, items: all[userId] });
+  },
+  markNotificationsRead(userId) {
+    const all = this.get(this.K.notifications, {});
+    if (all[userId]) all[userId] = all[userId].map(n => ({ ...n, read: true }));
+    this.set(this.K.notifications, all);
+    if (window.Cloud?.connected) window.Cloud.setDoc('notifications', userId, { userId, items: all[userId] || [] });
+  },
+  unreadCount(userId) {
+    return this.notifications(userId).filter(n => !n.read).length;
+  },
+
+  // ── Login lockout ──
+  loginAttempts(userId) { return this.get(this.K.loginAttempts, {})[userId] || { count: 0, lockedAt: null }; },
+  recordLoginFail(userId) {
+    const all = this.get(this.K.loginAttempts, {});
+    const rec = all[userId] || { count: 0, lockedAt: null };
+    rec.count += 1;
+    if (rec.count >= 3) rec.lockedAt = Date.now();
+    all[userId] = rec;
+    this.set(this.K.loginAttempts, all);
+    return rec;
+  },
+  resetLoginAttempts(userId) {
+    const all = this.get(this.K.loginAttempts, {});
+    delete all[userId];
+    this.set(this.K.loginAttempts, all);
+  },
+  unlockUser(userId) {
+    const all = this.get(this.K.loginAttempts, {});
+    delete all[userId];
+    this.set(this.K.loginAttempts, all);
+    // Also update user's locked flag
+    this.updateUser(userId, { locked: false });
+  }
 };
 
 // ==================== AUTH ====================
@@ -1566,7 +1642,31 @@ const Auth = {
   login(nameId, password) {
     const user = DB.users().find(u => u.id === nameId.toLowerCase() || u.name.toLowerCase() === nameId.toLowerCase());
     if (!user) return { ok: false, error: 'Name ID tidak dijumpai' };
-    if (user.password !== password) return { ok: false, error: 'Password salah' };
+    
+    // Check if account is inactive (deactivated by admin)
+    if (user.inactive) {
+      return { ok: false, error: 'Akaun ini telah dinyahaktifkan. Sila hubungi Manager atau Boss.' };
+    }
+    
+    // Check if account is locked
+    const attempts = DB.loginAttempts(user.id);
+    if (attempts.lockedAt) {
+      const manager = DB.users().find(u => ['admin', 'manager', 'hq'].includes(u.role) && u.branch_id === user.branch_id);
+      return { ok: false, locked: true, error: `Akaun dikunci selepas 3 cubaan gagal. Sila hubungi ${manager ? manager.name : 'Manager'} untuk buka semula.` };
+    }
+    
+    if (user.password !== password) {
+      const rec = DB.recordLoginFail(user.id);
+      const remaining = 3 - rec.count;
+      if (rec.count >= 3) {
+        const manager = DB.users().find(u => ['admin', 'manager', 'hq'].includes(u.role) && u.branch_id === user.branch_id);
+        return { ok: false, locked: true, error: `Akaun dikunci selepas 3 cubaan gagal. Sila hubungi ${manager ? manager.name : 'Manager'} untuk buka semula.` };
+      }
+      return { ok: false, error: `Password salah · ${remaining} cubaan lagi sebelum akaun dikunci` };
+    }
+    
+    // Success - reset attempts
+    DB.resetLoginAttempts(user.id);
     DB.setSession(user.id);
     return { ok: true, user };
   },
@@ -2019,7 +2119,7 @@ const Logic = {
   },
   
   // Weekly Report - for current week or given week start
-  weeklyReport(weekStart) {
+  weeklyReport(weekStart, branchFilter = null) {
     if (!weekStart) {
       const now = new Date();
       const day = now.getDay();
@@ -2032,7 +2132,8 @@ const Logic = {
     const startStr = weekStart.toISOString().slice(0,10);
     const endStr = weekEnd.toISOString().slice(0,10);
     
-    const leaders = DB.users().filter(u => u.role === 'leader' || u.role === 'solo');
+    let leaders = DB.users().filter(u => u.role === 'leader' || u.role === 'solo');
+    if (branchFilter) leaders = leaders.filter(u => u.branch_id === branchFilter);
     const inRange = (date) => date && date >= startStr && date <= endStr;
     
     const teamData = leaders.map(l => {
@@ -2322,6 +2423,13 @@ const App = {
     if (!result.ok) {
       err.textContent = result.error;
       err.classList.add('show');
+      if (result.locked) {
+        err.style.background = '#FEE2E2';
+        err.style.color = '#991B1B';
+        err.style.padding = '10px 14px';
+        err.style.borderRadius = '10px';
+        err.style.fontWeight = '700';
+      }
       return;
     }
     err.classList.remove('show');
@@ -2349,7 +2457,16 @@ const App = {
             <div class="awara-mark">AWARA</div>
             <div class="logo-text"><span class="sdn">${title || 'Sdn Bhd · Penang'}</span></div>
           </div>
-          <div class="avatar">${initials(user.name)}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${(() => {
+              const unread = DB.unreadCount(user.id);
+              return `<div onclick="App.openNotifications()" style="position:relative;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--cream-2);border-radius:50%;border:1px solid var(--border);">
+                <span style="font-size:16px;">🔔</span>
+                ${unread > 0 ? `<span style="position:absolute;top:-2px;right:-2px;background:#E53E3E;color:white;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;">${unread > 9 ? '9+' : unread}</span>` : ''}
+              </div>`;
+            })()}
+            <div class="avatar">${initials(user.name)}</div>
+          </div>
         </div>
         <div class="greeting">
           <div class="hi">${subtitle || 'Selamat Datang'}</div>
@@ -4033,13 +4150,19 @@ ${isAdminLike ? `
   },
   
   exportCSV() {
-    const cases = DB.cases();
-    const rows = [['Date Payslip', 'CS', 'Team Leader', 'Customer', 'IC', 'Phone', 'Pendapatan', 'Potongan', 'Gaji Bersih', 'Peratus', 'Package', 'Loan Amount', 'Tenor', 'Bulanan', 'Case Type', 'Status', 'Disburse Amount', 'Rejection Reason']];
+    const user = Auth.current();
+    let cases = DB.cases();
+    // Branch filter
+    if (!Permissions.canViewAllBranches(user)) {
+      cases = cases.filter(c => c.branch_id === user.branch_id || (!c.branch_id && user.branch_id === DB.branches().find(b => b.id !== 'hq')?.id));
+    }
+    const rows = [['Date Payslip', 'Branch', 'CS', 'Team Leader', 'Customer', 'IC', 'Phone', 'Pendapatan', 'Potongan', 'Gaji Bersih', 'Peratus', 'Package', 'Loan Amount', 'Tenor', 'Bulanan', 'Case Type', 'Status', 'Disburse Amount', 'Rejection Reason']];
     cases.forEach(c => {
       const cs = DB.user(c.source_cs_id);
       const leader = DB.user(c.leader_id);
+      const branch = DB.branch(c.branch_id);
       rows.push([
-        c.date_payslip, cs?.name || c.source_cs_id, leader?.name || c.leader_id,
+        c.date_payslip, branch?.name || '', cs?.name || c.source_cs_id, leader?.name || c.leader_id,
         c.customer_name, c.ic, c.phone || '',
         c.jumlah_pendapatan, c.jumlah_potongan, c.gaji_bersih, c.gaji_bersih_pct?.toFixed(2) + '%',
         pkgName(c.package_id) || '', c.loan_amount || '', c.tenor || '', c.bulanan?.toFixed(2) || '',
@@ -4077,7 +4200,7 @@ ${isAdminLike ? `
     const branches = DB.branches().filter(b => b.id !== 'hq');
     
     // Branch filter: HQ/Boss can pick any branch, others locked to own branch
-    const canPickBranch = Permissions.canViewAllBranches(user);
+    const canPickBranch = Permissions.canViewAllBranches(user) || user.role === 'admin';
     const selectedBranch = canPickBranch 
       ? (this.state.rankingBranch || 'all') 
       : user.branch_id;
@@ -4190,6 +4313,26 @@ ${isAdminLike ? `
     this.goto('admin-customers');
   },
   
+  openNotifications() {
+    const user = Auth.current();
+    if (!user) return;
+    const notifs = DB.notifications(user.id);
+    DB.markNotificationsRead(user.id);
+    showModal(`
+      <div class="modal-title">🔔 Notifikasi</div>
+      ${notifs.length === 0 ? `<div style="text-align:center;padding:32px 0;color:var(--ink-3);font-size:14px;">Tiada notifikasi</div>` :
+        notifs.map(n => `
+          <div style="padding:12px 0;border-bottom:1px solid var(--border-2);">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;">${n.title || 'Notifikasi'}</div>
+            <div style="font-size:12px;color:var(--ink-3);">${n.body || ''}</div>
+            <div style="font-size:10px;color:var(--ink-3);margin-top:4px;">${new Date(n.ts).toLocaleString('en-MY')}</div>
+          </div>
+        `).join('')
+      }
+      <button class="btn-secondary" onclick="hideModal(); App.render();" style="margin-top:12px;">Tutup</button>
+    `);
+  },
+
   setRankingBranch(branchId) {
     this.state.rankingBranch = branchId;
     this.render();
@@ -4673,6 +4816,7 @@ ${isAdminLike ? `
     const filterStatus = this.state.filterState.adminCust || 'all';
     const filterTeam = this.state.filterState.adminCustTeam || 'all';
     const filterTime = this.state.filterState.adminCustTime || 'month';
+    const filterBranch = this.state.filterState.adminCustBranch || 'all';
     const filterStaff = this.state.staffFilter || '';
     const dateFrom = this.state.dateFrom || '';
     const dateTo = this.state.dateTo || '';
@@ -4684,6 +4828,9 @@ ${isAdminLike ? `
     // Note: cases without branch_id are treated as belonging to the first non-HQ branch
     if (!Permissions.canViewAllBranches(user)) {
       cases = cases.filter(c => c.branch_id === user.branch_id || (!c.branch_id && user.branch_id === DB.branches().find(b => b.id !== 'hq')?.id));
+    } else if (filterBranch !== 'all') {
+      // HQ: apply optional branch filter pill
+      cases = cases.filter(c => c.branch_id === filterBranch);
     }
     
     // Staff filter (from clicking ranking row)
@@ -4736,7 +4883,12 @@ ${isAdminLike ? `
     // Sort newest first
     cases = cases.sort((a,b) => b.date_payslip.localeCompare(a.date_payslip));
     
-    const leaders = DB.users().filter(u => u.role === 'leader' || u.role === 'solo');
+    let leaders = DB.users().filter(u => u.role === 'leader' || u.role === 'solo');
+    if (!Permissions.canViewAllBranches(user)) {
+      leaders = leaders.filter(u => u.branch_id === user.branch_id);
+    } else if (filterBranch !== 'all') {
+      leaders = leaders.filter(u => u.branch_id === filterBranch);
+    }
     const totalAll = DB.cases().length;
     const staffViewing = filterStaff ? DB.user(filterStaff) : null;
     
@@ -4773,6 +4925,14 @@ ${isAdminLike ? `
         <div class="filter-chip ${(filterTime === 'all' && !dateFrom && !dateTo) ? 'active' : ''}" onclick="App.setFilter('adminCustTime','all'); App.clearDateFilter(true)">All Time</div>
       </div>
       
+      ${Permissions.canViewAllBranches(user) ? `
+      <div class="filter-bar">
+        <div class="filter-chip ${filterBranch === 'all' ? 'active' : ''}" onclick="App.setFilter('adminCustBranch','all')">All Branches</div>
+        ${DB.branches().filter(b => b.id !== 'hq').map(b =>
+          `<div class="filter-chip ${filterBranch === b.id ? 'active' : ''}" onclick="App.setFilter('adminCustBranch','${b.id}')">${b.name}</div>`
+        ).join('')}
+      </div>` : ''}
+
       <div class="filter-bar">
         ${['all','new','contacted','proposed','submitted','approved','disbursed','pending','potential','on_hold','rejected'].map(s => 
           `<div class="filter-chip ${filterStatus === s ? 'active' : ''}" onclick="App.setFilter('adminCust','${s}')">${s === 'all' ? 'All Status' : STATUS_LABELS[s]}</div>`
@@ -4833,6 +4993,7 @@ ${isAdminLike ? `
     const pkg = c.package_id ? LOAN_PACKAGES.find(p => p.id === c.package_id) : null;
     const cs = DB.user(c.source_cs_id);
     const leader = DB.user(c.leader_id);
+    const branch = c.branch_id ? DB.branch(c.branch_id) : null;
     const dateStr = new Date(c.date_payslip).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' });
     
     return `
@@ -4842,7 +5003,7 @@ ${isAdminLike ? `
             <div class="case-customer">${c.customer_name} ${c.is_duplicate ? '<span style="background: var(--warning-bg); color: var(--warning); font-size: 9px; padding: 2px 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; vertical-align: middle; margin-left: 4px;">DUP</span>' : ''}</div>
             <div class="case-package" style="margin-top: 2px;">${c.ic || '—'} · ${c.phone || '—'}</div>
             <div style="font-size: 11px; color: var(--ink-3); margin-top: 3px;">
-              CS: <strong style="color: var(--ink-2);">${cs?.name || '—'}</strong> · T.<strong style="color: var(--ink-2);">${leader?.name || '—'}</strong>
+              CS: <strong style="color: var(--ink-2);">${cs?.name || '—'}</strong> · T.<strong style="color: var(--ink-2);">${leader?.name || '—'}</strong>${branch ? ` · B.<strong style="color: var(--ink-2);">${branch.name}</strong>` : ''}
             </div>
           </div>
           <span class="case-status ${c.status}">${STATUS_LABELS[c.status]}</span>
@@ -4973,12 +5134,13 @@ ${isAdminLike ? `
       const leader = u.role === 'cs' ? DB.user(u.leader_id) : null;
       const teamSize = (u.role === 'leader') ? allUsers.filter(x => x.leader_id === u.id).length : 0;
       const branchName = u.branch_id ? (DB.branch(u.branch_id)?.name || u.branch_id) : '';
+      const isLocked = DB.loginAttempts(u.id).lockedAt;
       return `
-        <div class="qa-card" onclick="App.editUser('${u.id}')">
+        <div class="qa-card" onclick="App.editUser('${u.id}')" style="${u.inactive ? 'opacity:0.5;' : ''}">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div class="team-avatar ${u.role === 'cs' ? 'cs' : ''}" style="width: 36px; height: 36px; font-size: 12px;">${initials(u.name)}</div>
             <div style="flex: 1;">
-              <div class="qa-title">${u.name}${u.role === 'solo' ? ' <span class="solo-badge">Solo</span>' : ''}</div>
+              <div class="qa-title">${u.name}${u.role === 'solo' ? ' <span class="solo-badge">Solo</span>' : ''}${u.inactive ? ' <span style="background:#FEE2E2;color:#991B1B;font-size:9px;padding:2px 6px;border-radius:6px;font-weight:800;">INACTIVE</span>' : ''}${isLocked ? ' <span style="background:#FEF3C7;color:#92400E;font-size:9px;padding:2px 6px;border-radius:6px;font-weight:800;">🔒 LOCKED</span>' : ''}</div>
               <div class="qa-sub">${ROLE_LABELS[u.role]}${leader ? ` · Team ${leader.name}` : ''}${teamSize > 0 ? ` · ${teamSize} CS` : ''}${branchName ? ` · ${branchName}` : ''}</div>
             </div>
             <div style="color: var(--ink-3); font-size: 18px;">></div>
@@ -5073,7 +5235,16 @@ ${isAdminLike ? `
       
       <button class="submit-btn" onclick="App.saveUser('${userId}')">Save Changes</button>
       <button class="btn-secondary" onclick="hideModal()">Cancel</button>
-      ${userId !== Auth.current().id ? `<button class="btn-secondary" style="color: var(--danger); border-color: rgba(184, 66, 58, 0.3); margin-top: 8px;" onclick="App.deleteUser('${userId}')">Delete Staff</button>` : ''}
+      ${(() => {
+        const attempts = DB.loginAttempts(userId);
+        const isLocked = attempts.lockedAt;
+        const u2 = DB.user(userId);
+        return `
+          ${isLocked ? `<button class="btn-secondary" style="color: #059669; border-color: rgba(5,150,105,0.3); margin-top: 8px; width: 100%;" onclick="App.unlockUser('${userId}')">🔓 Buka Semula Akaun (Dikunci)</button>` : ''}
+          ${u2?.inactive ? `<button class="btn-secondary" style="color: #059669; border-color: rgba(5,150,105,0.3); margin-top: 8px; width: 100%;" onclick="App.reactivateStaff('${userId}')">✅ Aktifkan Semula</button>` : (userId !== Auth.current().id ? `<button class="btn-secondary" style="color: #B45309; border-color: rgba(180,83,9,0.3); margin-top: 8px; width: 100%;" onclick="App.deactivateStaff('${userId}')">⏸ Deactivate (Inactive)</button>` : '')}
+          ${userId !== Auth.current().id ? `<button class="btn-secondary" style="color: var(--danger); border-color: rgba(184, 66, 58, 0.3); margin-top: 8px;" onclick="App.deleteUser('${userId}')">Delete Staff</button>` : ''}
+        `;
+      })()}
     `);
   },
   
@@ -5103,6 +5274,28 @@ ${isAdminLike ? `
     DB.deleteUserById(userId);
     hideModal();
     toast('Staff deleted' + (window.Cloud?.connected ? ' · synced ☁' : ''));
+    this.render();
+  },
+
+  deactivateStaff(userId) {
+    if (!confirm('Deactivate staff ini? Mereka tak boleh login tapi data mereka kekal.')) return;
+    DB.updateUser(userId, { inactive: true });
+    hideModal();
+    toast('Staff deactivated');
+    this.render();
+  },
+
+  reactivateStaff(userId) {
+    DB.updateUser(userId, { inactive: false });
+    hideModal();
+    toast('Staff aktif semula ✅');
+    this.render();
+  },
+
+  unlockUser(userId) {
+    DB.unlockUser(userId);
+    hideModal();
+    toast('Akaun dibuka semula 🔓');
     this.render();
   },
   
@@ -5256,7 +5449,12 @@ ${isAdminLike ? `
     weekStart.setDate(weekStart.getDate() + diffToMonday + offset * 7);
     weekStart.setHours(0,0,0,0);
     
-    const report = Logic.weeklyReport(weekStart);
+    const canPickBranch = Permissions.canViewAllBranches(user) || user.role === 'admin';
+    const selectedWeeklyBranch = this.state.weeklyBranch || 'all';
+    const branches = DB.branches().filter(b => b.id !== 'hq');
+    const branchFilter = canPickBranch ? (selectedWeeklyBranch !== 'all' ? selectedWeeklyBranch : null) : user.branch_id;
+    
+    const report = Logic.weeklyReport(weekStart, branchFilter);
     const weekLabel = `${new Date(report.weekStart).toLocaleDateString('en-MY', {day:'numeric',month:'short'})} - ${new Date(report.weekEnd).toLocaleDateString('en-MY', {day:'numeric',month:'short'})}`;
     
     // Totals across all teams
@@ -5273,6 +5471,12 @@ ${isAdminLike ? `
     }), { kfi: 0, kfiCount: 0, calling: 0, whatsapp: 0, payslip: 0, closing: 0, submitting: 0, potential: 0, rejected: 0 });
     
     return this.topBar(user, 'Weekly Report') + `
+      ${canPickBranch ? `
+      <div style="padding: 12px 20px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <span style="font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em;">Branch:</span>
+        <button onclick="App.state.weeklyBranch='all'; App.render();" style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; background: ${selectedWeeklyBranch === 'all' ? 'var(--primary)' : 'var(--cream-2)'}; color: ${selectedWeeklyBranch === 'all' ? 'var(--cream)' : 'var(--ink)'};">All</button>
+        ${branches.map(b => `<button onclick="App.state.weeklyBranch='${b.id}'; App.render();" style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; background: ${selectedWeeklyBranch === b.id ? 'var(--primary)' : 'var(--cream-2)'}; color: ${selectedWeeklyBranch === b.id ? 'var(--cream)' : 'var(--ink)'};">${b.name}</button>`).join('')}
+      </div>` : ''}
       <div style="padding: 16px 20px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
         <button onclick="App.changeWeek(-1)" style="background: var(--cream-2); border: 1px solid var(--border); padding: 8px 14px; border-radius: 10px; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; color: var(--ink-2);">&lt; Prev Week</button>
         <div style="text-align: center;">
@@ -5372,7 +5576,11 @@ ${isAdminLike ? `
     const diffToMonday = day === 0 ? -6 : 1 - day;
     const weekStart = new Date(now);
     weekStart.setDate(weekStart.getDate() + diffToMonday + offset * 7);
-    const report = Logic.weeklyReport(weekStart);
+    const user = Auth.current();
+    const branchFilter = this.state.weeklyBranch && this.state.weeklyBranch !== 'all' 
+      ? this.state.weeklyBranch 
+      : (!Permissions.canViewAllBranches(user) && user.role !== 'admin' ? user.branch_id : null);
+    const report = Logic.weeklyReport(weekStart, branchFilter);
     
     const rows = [['Week', `${report.weekStart} to ${report.weekEnd}`]];
     rows.push([]);
@@ -5950,9 +6158,15 @@ ${isAdminLike ? `
     const selectedYM = this.state.exportMonth || new Date().toISOString().slice(0,7);
     const selectedStaff = this.state.exportStaff || 'all';
     const selectedPkg = this.state.exportPkg || 'all';
+    const selectedExportBranch = this.state.exportBranch || 'all';
+    const canPickBranch = Permissions.canViewAllBranches(user) || user.role === 'admin';
+    const branches = DB.branches().filter(b => b.id !== 'hq');
+    
     let allStaff = DB.users().filter(u => !['admin','hq'].includes(u.role));
-    if (!Permissions.canViewAllBranches(user)) {
+    if (!canPickBranch) {
       allStaff = allStaff.filter(u => u.branch_id === user.branch_id);
+    } else if (selectedExportBranch !== 'all') {
+      allStaff = allStaff.filter(u => u.branch_id === selectedExportBranch);
     }
     
     return this.topBar(user, 'Export Reports', 'For monthly HQ submission') + `
@@ -5962,6 +6176,15 @@ ${isAdminLike ? `
       
       <div class="section-header"><div class="section-title">Filters</div></div>
       <div style="padding: 0 20px;">
+        ${canPickBranch ? `
+        <div class="form-group">
+          <label>Branch</label>
+          <select onchange="App.state.exportBranch = this.value; App.render();">
+            <option value="all" ${selectedExportBranch === 'all' ? 'selected' : ''}>All Branches</option>
+            ${branches.map(b => `<option value="${b.id}" ${selectedExportBranch === b.id ? 'selected' : ''}>${b.name}</option>`).join('')}
+          </select>
+        </div>` : ''}
+        
         <div class="form-group">
           <label>Month</label>
           <select id="exp-month" onchange="App.state.exportMonth = this.value; App.render();">
@@ -6018,24 +6241,31 @@ ${isAdminLike ? `
     const ym = this.state.exportMonth || new Date().toISOString().slice(0,7);
     const staff = this.state.exportStaff || 'all';
     const pkg = this.state.exportPkg || 'all';
+    const exportBranch = this.state.exportBranch || 'all';
+    const user = Auth.current();
+    const branchFilter = !Permissions.canViewAllBranches(user) && user.role !== 'admin' 
+      ? user.branch_id 
+      : (exportBranch !== 'all' ? exportBranch : null);
     
     let rows = [];
-    let filename = `awara_${type}_${ym}.csv`;
+    let filename = `awara_${type}_${ym}${branchFilter ? '_' + branchFilter : ''}.csv`;
     
     if (type === 'performance') {
       rows.push(['MONTHLY PERFORMANCE REPORT', ym]);
       rows.push(['Generated:', new Date().toLocaleString('en-MY')]);
       rows.push([]);
-      rows.push(['Name', 'Role', 'Team', 'Payslip', 'Duplicates', 'Submit (KPI)', 'Disburse', 'Reject', 'KFI (RM)', 'PS Comm (RM)', 'Submit Comm (RM)', 'KFI Comm (RM)', 'Total Comm (RM)']);
+      rows.push(['Name', 'Role', 'Branch', 'Team', 'Payslip', 'Duplicates', 'Submit (KPI)', 'Disburse', 'Reject', 'KFI (RM)', 'PS Comm (RM)', 'Submit Comm (RM)', 'KFI Comm (RM)', 'Total Comm (RM)']);
       
-      const targets = staff === 'all' 
+      let targets = staff === 'all' 
         ? DB.users().filter(u => u.role !== 'admin')
         : DB.users().filter(u => u.id === staff);
+      if (branchFilter) targets = targets.filter(u => u.branch_id === branchFilter);
       
       targets.forEach(u => {
         const isLeader = u.role === 'leader' || u.role === 'solo';
         const stats = isLeader ? Logic.leaderStatsForMonth(u.id, ym) : Logic.csStatsForMonth(u.id, ym);
         const team = isLeader ? u.name : (DB.user(u.leader_id)?.name || '—');
+        const branchName = DB.branch(u.branch_id)?.name || '';
         let csCom = null, leaderCom = null;
         const isCurrent = ym === new Date().toISOString().slice(0,7);
         if (isCurrent && !isLeader) csCom = Logic.csCommission(u.id);
@@ -6043,6 +6273,7 @@ ${isAdminLike ? `
         rows.push([
           u.name,
           ROLE_LABELS[u.role],
+          branchName,
           team,
           stats.total || 0,
           stats.totalDuplicates || 0,
@@ -6067,6 +6298,7 @@ ${isAdminLike ? `
       let cases = DB.cases().filter(c => c.date_submitted && c.date_submitted.startsWith(ym));
       if (staff !== 'all') cases = cases.filter(c => c.source_cs_id === staff || c.leader_id === staff);
       if (pkg !== 'all') cases = cases.filter(c => c.package_id === pkg);
+      if (branchFilter) cases = cases.filter(c => c.branch_id === branchFilter);
       cases.sort((a,b) => a.date_submitted.localeCompare(b.date_submitted));
       
       cases.forEach(c => {
@@ -6100,6 +6332,7 @@ ${isAdminLike ? `
       let cases = DB.cases().filter(c => c.date_disbursed && c.date_disbursed.startsWith(ym) && c.status === 'disbursed');
       if (staff !== 'all') cases = cases.filter(c => c.source_cs_id === staff || c.leader_id === staff);
       if (pkg !== 'all') cases = cases.filter(c => c.package_id === pkg);
+      if (branchFilter) cases = cases.filter(c => c.branch_id === branchFilter);
       cases.sort((a,b) => a.date_disbursed.localeCompare(b.date_disbursed));
       
       let totalDisburse = 0;
@@ -6795,13 +7028,14 @@ async function bootstrap() {
         console.log("Loading from Firestore...", cloudUsers.length, "users");
         DB.set(DB.K.users, cloudUsers);
         
-        const [cloudCases, cloudActs, cloudNotes, cloudKoperasi, cloudAnns, cloudSettings] = await Promise.all([
+        const [cloudCases, cloudActs, cloudNotes, cloudKoperasi, cloudAnns, cloudSettings, cloudBranches] = await Promise.all([
           window.Cloud.getAll('cases'),
           window.Cloud.getAll('activities'),
           window.Cloud.getAll('customer_notes'),
           window.Cloud.getAll('koperasi'),
           window.Cloud.getAll('announcements'),
-          window.Cloud.getDoc('settings', 'main')
+          window.Cloud.getDoc('settings', 'main'),
+          window.Cloud.getAll('branches')
         ]);
         
         DB.set(DB.K.cases, cloudCases);
@@ -6826,6 +7060,14 @@ async function bootstrap() {
         // If cloud koperasi was empty, upload defaults
         if (cloudKoperasi.length === 0) {
           DEFAULT_PACKAGES.forEach(p => window.Cloud.setDoc('koperasi', p.id, p));
+        }
+
+        // Branches
+        if (cloudBranches.length > 0) {
+          DB.set(DB.K.branches, cloudBranches);
+        } else {
+          // Upload seed branches to cloud
+          SEED_BRANCHES.forEach(b => window.Cloud.setDoc('branches', b.id, b));
         }
         
         // Silent sync - no toast (cloud is just a background detail to users)
@@ -6864,6 +7106,24 @@ async function bootstrap() {
       window.Cloud.subscribe('announcements', items => {
         DB.set(DB.K.announcements, items);
         if (App.state.currentScreen !== 'login') App.render();
+      });
+      window.Cloud.subscribe('branches', items => {
+        if (items.length > 0) {
+          DB.set(DB.K.branches, items);
+          if (App.state.currentScreen !== 'login') App.render();
+        }
+      });
+      // Subscribe to notifications for current user
+      window.Cloud.subscribe('notifications', items => {
+        const user = Auth.current();
+        if (!user) return;
+        const myNotif = items.find(n => n.userId === user.id);
+        if (myNotif) {
+          const all = DB.get(DB.K.notifications, {});
+          all[user.id] = myNotif.items || [];
+          DB.set(DB.K.notifications, all);
+          if (App.state.currentScreen !== 'login') App.render();
+        }
       });
       // Settings is a single doc 'main' - listen to update all clients
       window.Cloud.subscribe('settings', items => {
@@ -6925,7 +7185,15 @@ async function bootstrap() {
       return u;
     });
 
-    if (changed) DB.set(DB.K.users, users);
+    if (changed) {
+      DB.set(DB.K.users, users);
+      // Sync new/patched users back to cloud
+      if (window.Cloud?.connected) {
+        users.filter(u => u.id === 'hq' || !u.branch_id).forEach(u => 
+          window.Cloud.setDoc('users', u.id, u).catch(() => {})
+        );
+      }
+    }
   })();
   
   // Refresh dynamic LOAN_PACKAGES from DB.koperasi() + Settings from DB.settings()
@@ -6963,6 +7231,10 @@ async function syncAllToCloud() {
     
     if (koperasi.length > 0) await window.Cloud.batchSet('koperasi', koperasi, 'id');
     if (announcements.length > 0) await window.Cloud.batchSet('announcements', announcements, 'id');
+    
+    // Branches
+    const branches = DB.branches();
+    if (branches.length > 0) await window.Cloud.batchSet('branches', branches, 'id');
     
     // Settings is a single doc with id='main'
     const settings = DB.settings();
