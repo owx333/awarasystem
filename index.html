@@ -1020,6 +1020,7 @@ const Permissions = {
 const SEED_BRANCHES = [
   { id: 'hq', name: 'HQ' },
   { id: 'branch_a', name: 'Branch A' },
+  { id: 'penang', name: 'Penang' },
 ];
 
 const SEED_USERS = [
@@ -1897,27 +1898,29 @@ const Logic = {
     };
   },
   
-  csRanking() {
+  csRanking(branchId = null) {
     // Only include staff who DO CS work (CS + Solo who also key payslips)
     // Excludes: Boss (admin), Manager, Kerani (admin role), Team Leaders
-    const users = DB.users().filter(u => u.role === 'cs' || u.role === 'solo');
+    let users = DB.users().filter(u => u.role === 'cs' || u.role === 'solo');
+    if (branchId) users = users.filter(u => u.branch_id === branchId);
     return users.map(u => {
       const s = this.csStats(u.id);
       return { user: u, ...s };
     }).sort((a, b) => b.total - a.total);
   },
   
-  teamRanking() {
-    const leaders = DB.users().filter(u => u.role === 'leader' || u.role === 'solo');
+  teamRanking(branchId = null) {
+    let leaders = DB.users().filter(u => u.role === 'leader' || u.role === 'solo');
+    if (branchId) leaders = leaders.filter(u => u.branch_id === branchId);
     return leaders.map(l => {
       const s = this.leaderStats(l.id);
       return { user: l, ...s };
     }).sort((a, b) => b.kfiAmount - a.kfiAmount);
   },
   
-  awards() {
-    const csRank = this.csRanking();
-    const leaderRank = this.teamRanking();
+  awards(branchId = null) {
+    const csRank = this.csRanking(branchId);
+    const leaderRank = this.teamRanking(branchId);
     return {
       topPayslip: csRank[0] || null,
       topKpi: leaderRank.slice().sort((a,b) => b.kpi - a.kpi)[0],
@@ -1957,26 +1960,17 @@ const Logic = {
     let cases = DB.cases();
     if (opts.csId) cases = cases.filter(c => c.source_cs_id === opts.csId);
     if (opts.leaderId) cases = cases.filter(c => c.leader_id === opts.leaderId);
+    if (opts.branchId) cases = cases.filter(c => c.branch_id === opts.branchId);
     return cases.filter(c => c.date_payslip && c.date_payslip.startsWith(ym));
   },
   
   // CS stats for any month
   csStatsForMonth(csId, ym) {
-    const payslipCases = DB.cases().filter(c => 
-      c.source_cs_id === csId && c.date_payslip && c.date_payslip.startsWith(ym)
-    );
-    const submitCases = DB.cases().filter(c =>
-      c.source_cs_id === csId && c.date_submitted && c.date_submitted.startsWith(ym) &&
-      this.KPI_STATUSES.includes(c.status)
-    );
-    const disburseCases = DB.cases().filter(c =>
-      c.source_cs_id === csId && c.date_disbursed && c.date_disbursed.startsWith(ym) &&
-      c.status === 'disbursed'
-    );
-    const rejectCases = DB.cases().filter(c =>
-      c.source_cs_id === csId && c.date_rejected && c.date_rejected.startsWith(ym) &&
-      c.status === 'rejected'
-    );
+    const all = DB.cases().filter(c => c.source_cs_id === csId);
+    const payslipCases = all.filter(c => c.date_payslip && c.date_payslip.startsWith(ym));
+    const submitCases = all.filter(c => c.date_submitted && c.date_submitted.startsWith(ym) && this.KPI_STATUSES.includes(c.status));
+    const disburseCases = all.filter(c => c.date_disbursed && c.date_disbursed.startsWith(ym) && c.status === 'disbursed');
+    const rejectCases = all.filter(c => c.date_rejected && c.date_rejected.startsWith(ym) && c.status === 'rejected');
     return {
       total: payslipCases.length,
       submitted: submitCases.length,
@@ -1990,21 +1984,11 @@ const Logic = {
   
   // Leader stats for any month
   leaderStatsForMonth(leaderId, ym) {
-    const payslipCases = DB.cases().filter(c => 
-      c.leader_id === leaderId && c.date_payslip && c.date_payslip.startsWith(ym)
-    );
-    const submitCases = DB.cases().filter(c =>
-      c.leader_id === leaderId && c.date_submitted && c.date_submitted.startsWith(ym) &&
-      this.KPI_STATUSES.includes(c.status)
-    );
-    const disburseCases = DB.cases().filter(c =>
-      c.leader_id === leaderId && c.date_disbursed && c.date_disbursed.startsWith(ym) &&
-      c.status === 'disbursed'
-    );
-    const rejectCases = DB.cases().filter(c =>
-      c.leader_id === leaderId && c.date_rejected && c.date_rejected.startsWith(ym) &&
-      c.status === 'rejected'
-    );
+    const all = DB.cases().filter(c => c.leader_id === leaderId);
+    const payslipCases = all.filter(c => c.date_payslip && c.date_payslip.startsWith(ym));
+    const submitCases = all.filter(c => c.date_submitted && c.date_submitted.startsWith(ym) && this.KPI_STATUSES.includes(c.status));
+    const disburseCases = all.filter(c => c.date_disbursed && c.date_disbursed.startsWith(ym) && c.status === 'disbursed');
+    const rejectCases = all.filter(c => c.date_rejected && c.date_rejected.startsWith(ym) && c.status === 'rejected');
     const bonusCases = disburseCases.filter(c => ['YTAA','KOMUJA'].includes(c.package_id));
     return {
       total: payslipCases.length,
@@ -3874,8 +3858,8 @@ ${isAdminLike ? `
   renderAdminDashboard(user) {
     const branchId = Permissions.canViewAllBranches(user) ? null : user.branch_id;
     const stats = Logic.companyStats(branchId);
-    const awards = Logic.awards();
-    const teamRank = Logic.teamRanking();
+    const awards = Logic.awards(branchId);
+    const teamRank = Logic.teamRanking(branchId);
 
     // Branch breakdown (HQ only)
     const branches = DB.branches().filter(b => b.id !== 'hq');
@@ -3986,8 +3970,8 @@ ${isAdminLike ? `
         </div>
       `).join('')}
       
-      <div class="section-header"><div class="section-title">CS Ranking</div><a class="section-action" onclick="App.goto('admin-rankings')">All ${Logic.csRanking().length} ></a></div>
-      ${Logic.csRanking().slice(0, 5).map((r, i) => {
+      <div class="section-header"><div class="section-title">CS Ranking</div><a class="section-action" onclick="App.goto('admin-rankings')">All ${Logic.csRanking(branchId).length} ></a></div>
+      ${Logic.csRanking(branchId).slice(0, 5).map((r, i) => {
         const leader = Logic.isLeaderRole(r.user) ? r.user : DB.user(r.user.leader_id);
         return `
         <div class="ranking-card ${i === 0 ? 'gold' : ''}">
@@ -5067,6 +5051,7 @@ ${isAdminLike ? `
           <div class="case-type-pill ${u.role === 'manager' ? 'active' : ''}" data-val="manager" onclick="App.pickRolePill(this, 'eu')">Manager</div>
           <div class="case-type-pill ${u.role === 'kerani' ? 'active' : ''}" data-val="kerani" onclick="App.pickRolePill(this, 'eu')">Admin</div>
           <div class="case-type-pill ${u.role === 'admin' ? 'active' : ''}" data-val="admin" onclick="App.pickRolePill(this, 'eu')">Boss</div>
+          <div class="case-type-pill ${u.role === 'hq' ? 'active' : ''}" data-val="hq" onclick="App.pickRolePill(this, 'eu')">HQ</div>
         </div>
       </div>
       
@@ -5154,6 +5139,7 @@ ${isAdminLike ? `
           <div class="case-type-pill" data-val="manager" onclick="App.pickRolePill(this, 'nu')">Manager</div>
           <div class="case-type-pill" data-val="kerani" onclick="App.pickRolePill(this, 'nu')">Admin</div>
           <div class="case-type-pill" data-val="admin" onclick="App.pickRolePill(this, 'nu')">Boss</div>
+          <div class="case-type-pill" data-val="hq" onclick="App.pickRolePill(this, 'nu')">HQ</div>
         </div>
       </div>
       
@@ -5960,7 +5946,10 @@ ${isAdminLike ? `
     const selectedYM = this.state.exportMonth || new Date().toISOString().slice(0,7);
     const selectedStaff = this.state.exportStaff || 'all';
     const selectedPkg = this.state.exportPkg || 'all';
-    const allStaff = DB.users().filter(u => u.role !== 'admin');
+    let allStaff = DB.users().filter(u => !['admin','hq'].includes(u.role));
+    if (!Permissions.canViewAllBranches(user)) {
+      allStaff = allStaff.filter(u => u.branch_id === user.branch_id);
+    }
     
     return this.topBar(user, 'Export Reports', 'For monthly HQ submission') + `
       <div class="info-banner info" style="margin: 0 20px 14px;">
@@ -6912,6 +6901,17 @@ async function bootstrap() {
     const storedBranches = DB.get(DB.K.branches);
     if (!storedBranches || storedBranches.length === 0) {
       DB.saveBranches(SEED_BRANCHES);
+    } else {
+      // Patch any missing branches from SEED_BRANCHES
+      let branches = DB.branches();
+      let branchChanged = false;
+      SEED_BRANCHES.forEach(sb => {
+        if (!branches.find(b => b.id === sb.id)) {
+          branches.push(sb);
+          branchChanged = true;
+        }
+      });
+      if (branchChanged) DB.saveBranches(branches);
     }
 
     // Patch users missing branch_id (existing users before branch feature)
