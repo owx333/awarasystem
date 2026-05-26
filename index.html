@@ -5234,7 +5234,7 @@ if (!Permissions.canViewAllBranches(user)) {
   cases = cases.filter(c => c.branch_id === user.branch_id);
     } else if (filterBranch !== 'all') {
       // HQ: apply optional branch filter pill
-      cases = cases.filter(c => c.branch_id === filterBranch);
+      cases = cases.filter(c => c.branch_id === filterBranch || (!c.branch_id && filterBranch === DB.branches().filter(b => b.id !== 'hq')[0]?.id));
     }
     
     // Staff filter (from clicking ranking row)
