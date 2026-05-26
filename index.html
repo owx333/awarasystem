@@ -4476,6 +4476,10 @@ ${isAdminLike ? `
           <div class="qa-title">Post Announcement</div>
           <div class="qa-sub">Send notice to entire team · shows on every dashboard</div>
         </div>
+        <div class="qa-card" onclick="App.goto('admin-koperasi')">
+  <div class="qa-title">🏦 Manage Koperasi</div>
+  <div class="qa-sub">Add · edit · delete loan packages · syncs to all users</div>
+</div>
         ${Permissions.canEditSettings(user) ? `
         <div class="qa-card" onclick="App.goto('admin-settings')" style="border: 2px solid var(--accent); background: linear-gradient(135deg, #FFF8E8 0%, var(--cream-2) 100%);">
           <div class="qa-title">⚙️ System Settings</div>
