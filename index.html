@@ -2903,9 +2903,22 @@ const App = {
       }
       return;
     }
-    err.classList.remove('show');
-    this.state.currentScreen = this.defaultScreen(result.user);
-    this.render();
+err.classList.remove('show');
+this.state.currentScreen = this.defaultScreen(result.user);
+
+// Load notifications from Firestore for this user after login
+if (window.Cloud?.connected) {
+  window.Cloud.getDoc('notifications', result.user.id).then(doc => {
+    if (doc && doc.items) {
+      const all = DB.get(DB.K.notifications, {});
+      all[result.user.id] = doc.items;
+      DB.set(DB.K.notifications, all);
+      App.render();
+    }
+  }).catch(() => {});
+}
+
+this.render();
   },
   
   // ============ TOP BAR ============
