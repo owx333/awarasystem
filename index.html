@@ -1460,9 +1460,9 @@ const DB = {
         allUsers.filter(u => u.role === 'admin').forEach(u => notify(u.id));
         allUsers.filter(u => u.role === 'manager' && u.branch_id === caseBranch).forEach(u => notify(u.id));
 } else if (editorRole === 'admin') {
-  allUsers.filter(u => u.role === 'kerani').forEach(u => notify(u.id));
+  allUsers.filter(u => u.role === 'kerani' && u.branch_id === caseBranch).forEach(u => notify(u.id));
   allUsers.filter(u => u.role === 'hq').forEach(u => notify(u.id));
-  allUsers.filter(u => u.role === 'manager').forEach(u => notify(u.id));
+  allUsers.filter(u => u.role === 'manager' && u.branch_id === caseBranch).forEach(u => notify(u.id));
 }
     }
     
