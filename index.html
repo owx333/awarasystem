@@ -5533,7 +5533,7 @@ if (!Permissions.canViewAllBranches(user)) {
     if (!isSuperUser) {
       allUsers = allUsers.filter(u => !u.branch_id || u.branch_id === user.branch_id);
     }
-    const bossUsers = isSuperUser ? allUsers.filter(u => u.role === 'admin') : [];
+    const bossUsers = user.role === 'admin' ? allUsers.filter(u => u.role === 'admin') : [];
     const hqUsers = isSuperUser ? allUsers.filter(u => u.role === 'hq') : [];
     const managers = allUsers.filter(u => u.role === 'manager');
     const adminUsers = allUsers.filter(u => u.role === 'kerani');  // Admin role (kerani internal name)
@@ -5608,6 +5608,11 @@ if (!Permissions.canViewAllBranches(user)) {
   editUser(userId) {
     const u = DB.user(userId);
     if (!u) return;
+    const currentUser = Auth.current();
+if (currentUser.role === 'hq' && u.role === 'admin') {
+  toast('⛔ HQ tidak boleh edit akaun Boss');
+  return;
+}
     const allLeaders = DB.users().filter(x => x.role === 'leader');
     const branches = DB.branches().filter(b => b.id !== 'hq');
     
@@ -5681,6 +5686,13 @@ if (!Permissions.canViewAllBranches(user)) {
     
     if (!name) { toast('Name required'); return; }
     if (role === 'cs' && !leaderId) { toast('Pilih Team Leader untuk CS'); return; }
+    const currentUser = Auth.current();
+const targetUser = DB.user(userId);
+if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
+  toast('⛔ HQ tidak boleh ubah akaun Boss');
+  hideModal();
+  return;
+}
     
     // Detect role changes
     const existingUser = DB.user(userId);
