@@ -1837,6 +1837,76 @@ const Logic = {
     return { count: promoted };
   },
   
+  // When Solo/Leader demotes to CS - reverse of promotion
+  // Cases they personally collected (source=themselves, leader=themselves): leader_id → new TL
+  // Cases from their team CS (source!=themselves, leader=themselves): transfer to Manager
+  // (because team structure dissolves when leader becomes CS)
+  demoteCases(userId, newRole, newLeaderId) {
+    if (newRole !== 'cs') return { ownCount: 0, teamCount: 0 };
+    if (!newLeaderId) return { ownCount: 0, teamCount: 0, error: 'New leader required' };
+    
+    const manager = this.findManager();
+    const allCases = DB.cases();
+    const now = Date.now();
+    let ownCount = 0;        // their own collected cases
+    let teamCount = 0;       // team cases (from their team's other CS)
+    const updatedCases = [];
+    
+    allCases.forEach(c => {
+      // Case 1: They were both source CS AND leader (Solo's own work, or TL's own collected)
+      // → leader_id changes to new TL, source stays
+      if (c.source_cs_id === userId && c.leader_id === userId) {
+        const newCase = {
+          ...c,
+          leader_id: newLeaderId,
+          demoted_from_role: userId,
+          demoted_at: now
+        };
+        updatedCases.push(newCase);
+        ownCount++;
+      }
+      // Case 2: Team Leader's team-cases (other CS collected, but TL was leader)
+      // → transfer to Manager (team structure dissolves)
+      else if (c.leader_id === userId && c.source_cs_id !== userId) {
+        if (manager) {
+          const newCase = {
+            ...c,
+            leader_id: manager.id,
+            transferred_from_demoted_leader: userId,
+            transferred_at: now
+          };
+          updatedCases.push(newCase);
+          teamCount++;
+        }
+        // If no manager, leave it (will show warning to admin)
+      }
+    });
+    
+    if (updatedCases.length > 0) {
+      const cases = DB.cases();
+      updatedCases.forEach(uc => {
+        const idx = cases.findIndex(x => x.id === uc.id);
+        if (idx !== -1) cases[idx] = uc;
+      });
+      DB.set(DB.K.cases, cases);
+      
+      if (window.Cloud?.connected) {
+        updatedCases.forEach(uc => {
+          window.Cloud.setDoc('cases', uc.id, uc).catch(e => 
+            console.error('Failed to sync demoted case:', uc.id, e)
+          );
+        });
+      }
+    }
+    
+    return { ownCount, teamCount, hasManager: !!manager };
+  },
+  
+  // Find all CS users who were under a Team Leader (used for warning before demotion)
+  csUnderLeader(leaderId) {
+    return DB.users().filter(u => u.role === 'cs' && u.leader_id === leaderId && !u.inactive);
+  },
+  
   currentMonthYM() {
     return new Date().toISOString().slice(0,7);
   },
@@ -5422,9 +5492,21 @@ ${isAdminLike ? `
     if (!name) { toast('Name required'); return; }
     if (role === 'cs' && !leaderId) { toast('Pilih Team Leader untuk CS'); return; }
     
-    // Detect promotion: was CS, now Solo or Team Leader → auto-transfer their cases
+    // Detect role changes
     const existingUser = DB.user(userId);
-    const isPromotion = existingUser && existingUser.role === 'cs' && (role === 'solo' || role === 'leader');
+    const wasRole = existingUser?.role;
+    const isPromotion = wasRole === 'cs' && (role === 'solo' || role === 'leader');
+    const isDemotion = (wasRole === 'solo' || wasRole === 'leader') && role === 'cs';
+    
+    // For Team Leader demotion, warn user about team members
+    if (isDemotion && wasRole === 'leader') {
+      const teamCS = Logic.csUnderLeader(userId);
+      if (teamCS.length > 0) {
+        const teamNames = teamCS.map(c => c.name).join(', ');
+        const warning = `⚠ ${name} adalah Team Leader untuk ${teamCS.length} CS:\n\n${teamNames}\n\nLepas demote ke CS:\n• ${name} sendiri jadi CS bawah leader baru\n• Cases dia sendiri kumpul → pindah ke leader baru\n• Cases dari team CS (${teamNames}) → pindah ke Manager\n• ${teamCS.length} CS team members masih point ke ${name} sebagai leader → kena re-assign manually di Edit Staff\n\nContinue?`;
+        if (!confirm(warning)) return;
+      }
+    }
     
     const updates = { name, role };
     if (branchId) updates.branch_id = branchId;
@@ -5433,18 +5515,33 @@ ${isAdminLike ? `
     
     DB.updateUser(userId, updates);  // updateUser already syncs to Cloud
     
-    // If promoted from CS, transfer their cases to themselves as leader
-    let promotedMsg = '';
+    // Handle case ownership changes based on role transition
+    let extraMsg = '';
     if (isPromotion) {
       const result = Logic.promoteCSCases(userId, role);
       if (result.count > 0) {
-        promotedMsg = ` · ${result.count} cases promoted to own ownership 🎯`;
-        console.log(`Promotion: ${result.count} cases transferred to ${name} as new ${role}`);
+        extraMsg = ` · ${result.count} cases promoted to own ownership 🎯`;
+        console.log(`Promotion: ${result.count} cases now owned by ${name} as new ${role}`);
+      }
+    } else if (isDemotion) {
+      const result = Logic.demoteCases(userId, role, leaderId);
+      if (result.ownCount > 0 || result.teamCount > 0) {
+        const parts = [];
+        if (result.ownCount > 0) parts.push(`${result.ownCount} own cases → leader baru`);
+        if (result.teamCount > 0) parts.push(`${result.teamCount} team cases → Manager`);
+        extraMsg = ' · ' + parts.join(' · ') + ' 📤';
+        console.log(`Demotion: ${name} → CS · own=${result.ownCount}, team→manager=${result.teamCount}`);
+      }
+      if (!result.hasManager && wasRole === 'leader') {
+        const teamCS = Logic.csUnderLeader(userId);
+        if (teamCS.length > 0) {
+          alert('⚠ Tiada Manager active — team cases tidak dipindah. Sila create Manager dan re-process.');
+        }
       }
     }
     
     hideModal();
-    toast('Staff updated' + (window.Cloud?.connected ? ' · synced ☁' : '') + promotedMsg);
+    toast('Staff updated' + (window.Cloud?.connected ? ' · synced ☁' : '') + extraMsg);
     this.render();
   },
   
