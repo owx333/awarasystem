@@ -127,20 +127,23 @@ window.__firebaseStatus = { stage: 'loading', error: null };
           return null;
         }
       },
-      async batchSet(collectionName, items, keyField = 'id') {
-        try {
-          const batch = fbDb.batch();
-          items.forEach(item => {
-            const cleanItem = JSON.parse(JSON.stringify(item));
-            batch.set(fbDb.collection(collectionName).doc(String(cleanItem[keyField])), cleanItem);
-          });
-          await batch.commit();
-          return true;
-        } catch (e) {
-          console.error("Cloud.batchSet error:", e);
-          return false;
-        }
-      },
+async batchSet(collectionName, items, keyField = 'id') {
+  try {
+    const CHUNK = 500;
+    for (let i = 0; i < items.length; i += CHUNK) {
+      const batch = fbDb.batch();
+      items.slice(i, i + CHUNK).forEach(item => {
+        const cleanItem = JSON.parse(JSON.stringify(item));
+        batch.set(fbDb.collection(collectionName).doc(String(cleanItem[keyField])), cleanItem);
+      });
+      await batch.commit();
+    }
+    return true;
+  } catch (e) {
+    console.error("Cloud.batchSet error:", e);
+    return false;
+  }
+},
       subscribe(collectionName, callback) {
         if (this.listeners[collectionName]) this.listeners[collectionName]();
         this.listeners[collectionName] = fbDb.collection(collectionName).onSnapshot(
