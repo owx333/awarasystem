@@ -8952,7 +8952,7 @@ if (type === 'disbursed') {
       }
       
       // Get target staff (CS + Solo)
-      let targets = DB.users().filter(u => ['cs', 'solo'].includes(u.role) && !u.inactive);
+      let targets = DB.users().filter(u => ['cs', 'solo', 'leader'].includes(u.role) && !u.inactive);
       if (staff !== 'all') targets = targets.filter(u => u.id === staff);
       if (branchFilter) targets = targets.filter(u => u.branch_id === branchFilter);
       
