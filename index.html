@@ -3400,7 +3400,7 @@ this.bindCommonEvents();
             <div class="case-customer">${c.customer_name}</div>
             <div class="case-package" style="margin-top: 2px;">${phoneLink(c.phone, true)} · IC: ${c.ic || '—'}</div>
             <div style="font-size: 11px; color: var(--ink-2); margin-top: 4px;">
-              <strong>Bersih ${fmtRM(c.gaji_bersih)} (${c.gaji_bersih_pct.toFixed(0)}%)</strong> · CS: ${cs?.name || '—'} · ${dateStr}
+              <strong>Bersih ${fmtRM(c.gaji_bersih)} (${(c.gaji_bersih_pct || 0).toFixed(0)}%)</strong> · CS: ${cs?.name || '—'} · ${dateStr}
             </div>
           </div>
           <span class="case-status new">New</span>
@@ -3565,7 +3565,7 @@ this.bindCommonEvents();
     // Subtitle: for new cases show salary info; for processed cases show package
     let subtitle = '';
     if (isNew || !pkg) {
-      subtitle = `Pendapatan ${fmtRM(c.jumlah_pendapatan)} · Bersih ${fmtRM(c.gaji_bersih)} (${c.gaji_bersih_pct.toFixed(0)}%)`;
+      subtitle = `Pendapatan ${fmtRM(c.jumlah_pendapatan)} · Bersih ${fmtRM(c.gaji_bersih)} (${(c.gaji_bersih_pct || 0).toFixed(0)}%)`;
     } else {
       subtitle = `${pkg.name} · ${fmtRM(c.loan_amount)} · ${c.tenor}m`;
     }
@@ -3777,7 +3777,7 @@ setSearchCS(val) {
           <div><span style="color: var(--ink-3);">Pendapatan:</span> <strong>RM ${Number(c.jumlah_pendapatan).toFixed(2)}</strong></div>
           <div><span style="color: var(--ink-3);">Potongan:</span> <strong>RM ${Number(c.jumlah_potongan).toFixed(2)}</strong></div>
           <div><span style="color: var(--ink-3);">Gaji Bersih:</span> <strong style="color: var(--primary);">RM ${Number(c.gaji_bersih).toFixed(2)}</strong></div>
-          <div><span style="color: var(--ink-3);">Peratus:</span> <strong style="color: var(--primary);">${c.gaji_bersih_pct.toFixed(2)}%</strong></div>
+          <div><span style="color: var(--ink-3);">Peratus:</span> <strong style="color: var(--primary);">${(c.gaji_bersih_pct || 0).toFixed(2)}%</strong></div>
         </div>
       </div>
       
@@ -4380,7 +4380,7 @@ ${isAdminLike ? `
     
     showModal(`
       <div class="modal-title">${isEdit ? 'Edit Loan Details' : 'Propose Package'} · stage 3</div>
-      <div class="modal-sub">${c.customer_name} · Gaji Bersih: ${fmtRM(c.gaji_bersih)} (${c.gaji_bersih_pct.toFixed(0)}%)</div>
+      <div class="modal-sub">${c.customer_name} · Gaji Bersih: ${fmtRM(c.gaji_bersih)} (${(c.gaji_bersih_pct || 0).toFixed(0)}%)</div>
       
       ${!isEdit && c.status === 'new' ? `
         <div class="info-banner info" style="margin-bottom: 14px;">
@@ -6673,8 +6673,8 @@ openEditCustomer(caseId) {
       
       <div style="background: var(--primary-glow); padding: 12px; border-radius: 10px; margin-bottom: 14px;">
         <div style="display: flex; justify-content: space-between;">
-          <div><span style="font-size: 10px; color: var(--ink-3); text-transform: uppercase; font-weight: 700;">Gaji Bersih</span><br><strong id="ec-bersih" style="font-size: 18px; color: var(--primary);">RM ${c.gaji_bersih.toFixed(2)}</strong></div>
-          <div><span style="font-size: 10px; color: var(--ink-3); text-transform: uppercase; font-weight: 700;">Peratus</span><br><strong id="ec-pct" style="font-size: 18px; color: var(--primary);">${c.gaji_bersih_pct.toFixed(2)}%</strong></div>
+          <div><span style="font-size: 10px; color: var(--ink-3); text-transform: uppercase; font-weight: 700;">Gaji Bersih</span><br><strong id="ec-bersih" style="font-size: 18px; color: var(--primary);">RM ${(c.gaji_bersih || 0).toFixed(2)}</strong></div>
+          <div><span style="font-size: 10px; color: var(--ink-3); text-transform: uppercase; font-weight: 700;">Peratus</span><br><strong id="ec-pct" style="font-size: 18px; color: var(--primary);">${(c.gaji_bersih_pct || 0).toFixed(2)}%</strong></div>
         </div>
       </div>
       
