@@ -4017,11 +4017,6 @@ ${stage2Done && canProcessStage2 ? (
     `);
   },
 
-  <button class="submit-btn" onclick="App.saveAdminDetail('${caseId}')">💾 Simpan</button>
-      <button class="btn-secondary" onclick="App.viewCase('${caseId}')">Back</button>
-    `);
-  },
-
   // ════════════════ DUPLICATE HANDLING (admin tools) ════════════════
   // Find original case by IC + branch (smarter than relying on duplicate_of)
   viewOriginalDuplicate(currentCaseId) {
