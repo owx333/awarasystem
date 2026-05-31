@@ -2485,14 +2485,14 @@ const Logic = {
   
   // Cases with payslip in current month (when payslip was collected)
   monthlyPayslipCases(opts = {}) {
-    const ym = this.currentMonthYM();
+    const ym = opts.ym || this.currentMonthYM();
     return this.allCases(opts).filter(c => c.date_payslip && c.date_payslip.startsWith(ym));
   },
   
   // Cases submitted in current month (by date_submitted only - including those later rejected/disbursed)
   // This is the correct KPI logic: if it was submitted in May, it counts for May KPI regardless of later status
   monthlySubmitCases(opts = {}) {
-    const ym = this.currentMonthYM();
+    const ym = opts.ym || this.currentMonthYM();
     return this.allCases(opts).filter(c => 
       c.date_submitted && c.date_submitted.startsWith(ym)
     );
@@ -2500,7 +2500,7 @@ const Logic = {
   
   // Cases disbursed in current month (by date_disbursed) - KFI counts here
   monthlyDisburseCases(opts = {}) {
-    const ym = this.currentMonthYM();
+    const ym = opts.ym || this.currentMonthYM();
     return this.allCases(opts).filter(c => 
       c.date_disbursed && c.date_disbursed.startsWith(ym) && 
       c.status === 'disbursed'
@@ -2509,7 +2509,7 @@ const Logic = {
   
   // Cases rejected in current month (by date_rejected)
   monthlyRejectCases(opts = {}) {
-    const ym = this.currentMonthYM();
+    const ym = opts.ym || this.currentMonthYM();
     return this.allCases(opts).filter(c => 
       c.date_rejected && c.date_rejected.startsWith(ym) && 
       c.status === 'rejected'
@@ -2554,11 +2554,11 @@ const Logic = {
   },
   
   // CS stats - cross-month accurate, excludes duplicates from payslip count
-  csStats(csId) {
-    const payslipCases = this.monthlyPayslipCases({ csId });
-    const submitCases = this.monthlySubmitCases({ csId });
-    const disburseCases = this.monthlyDisburseCases({ csId });
-    const rejectCases = this.monthlyRejectCases({ csId });
+  csStats(csId, ym = null) {
+    const payslipCases = this.monthlyPayslipCases({ csId, ym });
+    const submitCases = this.monthlySubmitCases({ csId, ym });
+    const disburseCases = this.monthlyDisburseCases({ csId, ym });
+    const rejectCases = this.monthlyRejectCases({ csId, ym });
     
     // Duplicate payslips don't count toward tier
     const validPayslip = payslipCases.filter(c => !c.is_duplicate);
@@ -2566,9 +2566,10 @@ const Logic = {
     
     const total = validPayslip.length;
     const totalDuplicates = duplicates.length;
-    // KPI count = cases that were submitted AND still alive (NOT rejected) - item 4 requirement
+    // KPI count = cases that were submitted AND still alive (NOT rejected, NOT on_hold) - item 4 requirement
     // Rejected this month doesn't count toward submit/KPI commission
-    const submitted = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected').length;
+    // On hold also excluded — case is paused, not actively in submission
+    const submitted = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected' && c.status !== 'on_hold').length;
     const disbursed = disburseCases.filter(c => !c.is_duplicate).length;
     const rejected = rejectCases.filter(c => !c.is_duplicate).length;
     const newCount = validPayslip.filter(c => c.status === 'new').length;
@@ -2593,24 +2594,24 @@ const Logic = {
   },
   
   // Leader stats - cross-month accurate, excludes duplicates from payslip count
-  leaderStats(leaderId) {
+  leaderStats(leaderId, ym = null) {
     const leader = DB.user(leaderId);
     const teamMembers = DB.users().filter(u => u.leader_id === leaderId);
     
-    const payslipCases = this.monthlyPayslipCases({ leaderId });
-    const submitCases = this.monthlySubmitCases({ leaderId });
-    const disburseCases = this.monthlyDisburseCases({ leaderId });
-    const rejectCases = this.monthlyRejectCases({ leaderId });
+    const payslipCases = this.monthlyPayslipCases({ leaderId, ym });
+    const submitCases = this.monthlySubmitCases({ leaderId, ym });
+    const disburseCases = this.monthlyDisburseCases({ leaderId, ym });
+    const rejectCases = this.monthlyRejectCases({ leaderId, ym });
     
     const validPayslip = payslipCases.filter(c => !c.is_duplicate);
     const total = validPayslip.length;
-    // KPI count excludes rejected cases this month (item 4)
-    const submitted = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected').length;
+    // KPI count excludes rejected AND on_hold cases this month
+    const submitted = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected' && c.status !== 'on_hold').length;
     const disbursed = disburseCases.filter(c => !c.is_duplicate).length;
     const newCount = validPayslip.filter(c => c.status === 'new').length;
     // KFI is on the disbursing leader (not original CS), so include all disbursed by this leader
     const kfiAmount = disburseCases.reduce((s,c) => s + (c.disburse_amount || 0), 0);
-    const loanSubmission = submitCases.filter(c => !c.is_duplicate).reduce((s,c) => s + (c.loan_amount || 0), 0);
+    const loanSubmission = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected' && c.status !== 'on_hold').reduce((s,c) => s + (c.loan_amount || 0), 0);
     const rejected = rejectCases.filter(c => !c.is_duplicate).length;
     const lostAmount = rejectCases.filter(c => !c.is_duplicate).reduce((s,c) => s + (c.loan_amount || 0), 0);
     
@@ -2635,20 +2636,20 @@ const Logic = {
     const rejectCases = this.monthlyRejectCases(opts);
     
     const total = payslipCases.length;
-    const submitted = submitCases.filter(c => c.status !== 'rejected').length;
+    const submitted = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold').length;
     const disbursed = disburseCases.length;
     const rejected = rejectCases.length;
     const newCount = payslipCases.filter(c => c.status === 'new').length;
     const pending = this.pendingCases().length;
     const kfiAmount = disburseCases.reduce((s,c) => s + (c.disburse_amount || 0), 0);
-    const loanSubmission = submitCases.reduce((s,c) => s + (c.loan_amount || 0), 0);
+    const loanSubmission = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold').reduce((s,c) => s + (c.loan_amount || 0), 0);
     const lostAmount = rejectCases.reduce((s,c) => s + (c.loan_amount || 0), 0);
     return { total, submitted, disbursed, rejected, newCount, pending, kfiAmount, loanSubmission, lostAmount };
   },
   
   // CS commission calculation (unchanged)
-  csCommission(csId) {
-    const stats = this.csStats(csId);
+  csCommission(csId, ym = null) {
+    const stats = this.csStats(csId, ym);
     let psRate = 0, psTier = null;
     for (const t of CS_PAYSLIP_TIERS) {
       if (stats.total >= t.min) { psRate = t.rate; psTier = t; break; }
@@ -2685,8 +2686,8 @@ const Logic = {
   },
   
   // Leader commission - based on DISBURSED amount in current month (cross-month correct)
-  leaderCommission(leaderId) {
-    const stats = this.leaderStats(leaderId);
+  leaderCommission(leaderId, ym = null) {
+    const stats = this.leaderStats(leaderId, ym);
     const tiers = stats.isSolo ? SOLO_KFI_TIERS : LEADER_KFI_TIERS;
     
     // KFI commission (% of disburse)
@@ -2705,7 +2706,7 @@ const Logic = {
     
     // Submit lump-sum bonus (item 4) - SOLO ONLY (TL doesn't earn this)
     // Count cases submitted this month, excluding rejected (item 4: 当月reject的话就不算kpi)
-    const submitCases = this.monthlySubmitCases({ leaderId });
+    const submitCases = this.monthlySubmitCases({ leaderId, ym });
     const validKpi = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected').length;
     let submitLump = 0, submitTier = null;
     const submitTiers = stats.isSolo ? SOLO_SUBMIT_TIERS : [];  // TL has no submit tiers
@@ -2726,7 +2727,7 @@ const Logic = {
     // For each bonus_package, check disburse amount for that package this month
     let bonusCom = 0;
     const bonusBreakdown = [];
-    const allDisburseCases = this.monthlyDisburseCases({ leaderId }).filter(c => !c.is_duplicate);
+    const allDisburseCases = this.monthlyDisburseCases({ leaderId, ym }).filter(c => !c.is_duplicate);
     
     if (BONUS_PACKAGES && BONUS_PACKAGES.length > 0) {
       for (const bp of BONUS_PACKAGES) {
@@ -2869,12 +2870,12 @@ const Logic = {
     const bonusCases = disburseCases.filter(c => ['YTAA','KOMUJA'].includes(c.package_id));
     return {
       total: payslipCases.length,
-      submitted: submitCases.length,
-      kpi: submitCases.length,
+      submitted: submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold').length,
+      kpi: submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold').length,
       disbursed: disburseCases.length,
       rejected: rejectCases.length,
       kfiAmount: disburseCases.reduce((s,c) => s + (c.disburse_amount || 0), 0),
-      loanSubmission: submitCases.reduce((s,c) => s + (c.loan_amount || 0), 0),
+      loanSubmission: submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold').reduce((s,c) => s + (c.loan_amount || 0), 0),
       lostAmount: rejectCases.reduce((s,c) => s + (c.loan_amount || 0), 0),
       bonusKfi: bonusCases.reduce((s,c) => s + (c.disburse_amount || 0), 0)
     };
@@ -5557,6 +5558,10 @@ ${stage2Done && canProcessStage2 ? (
     const tab = this.state.tabState.adminRank || 'cs';
     const branches = DB.branches().filter(b => b.id !== 'hq');
     
+    // Month filter for ranking (default: current month)
+    const selectedRankMonth = this.state.rankingMonth || Logic.currentMonthYM();
+    const availMonths = Logic.availableMonths();
+    
     // Branch filter: HQ/Boss can pick any branch, others locked to own branch
     const canPickBranch = Permissions.canViewAllBranches(user) || user.role === 'admin';
     const selectedBranch = canPickBranch 
@@ -5573,9 +5578,9 @@ ${stage2Done && canProcessStage2 ? (
     // CS Ranking: Payslip / KPI / KFI / Com / Special Com
     const csUsers = filterByBranch(DB.users().filter(u => u.role === 'cs' || u.role === 'solo'));
     const csRows = csUsers.map(u => {
-      const stats = Logic.csStats(u.id);
-      const csCom = Logic.csCommission(u.id);  // CS commission (payslip + submit)
-      const leaderCom = u.role === 'solo' ? Logic.leaderCommission(u.id) : null;
+      const stats = Logic.csStats(u.id, selectedRankMonth);
+      const csCom = Logic.csCommission(u.id, selectedRankMonth);  // CS commission (payslip + submit)
+      const leaderCom = u.role === 'solo' ? Logic.leaderCommission(u.id, selectedRankMonth) : null;
       const specialCom = leaderCom ? leaderCom.bonusCom : 0;
       const totalCom = csCom.total + (leaderCom ? leaderCom.total : 0);
       const branchName = DB.branch(u.branch_id)?.name || '';
@@ -5592,8 +5597,8 @@ ${stage2Done && canProcessStage2 ? (
     // Team Ranking: Team's Payslip / KPI / KFI / Com / Special Com
     const teamLeaders = filterByBranch(DB.users().filter(u => u.role === 'leader' || u.role === 'solo'));
     const teamRows = teamLeaders.map(l => {
-      const stats = Logic.leaderStats(l.id);
-      const leaderCom = Logic.leaderCommission(l.id);
+      const stats = Logic.leaderStats(l.id, selectedRankMonth);
+      const leaderCom = Logic.leaderCommission(l.id, selectedRankMonth);
       const branchName = DB.branch(l.branch_id)?.name || '';
       return {
         user: l, branchName,
@@ -5644,6 +5649,16 @@ ${stage2Done && canProcessStage2 ? (
         <button onclick="App.setRankingBranch('all')" style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; background: ${selectedBranch === 'all' ? 'var(--primary)' : 'var(--cream-2)'}; color: ${selectedBranch === 'all' ? 'var(--cream)' : 'var(--ink)'};">All</button>
         ${branches.map(b => `<button onclick="App.setRankingBranch('${b.id}')" style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; background: ${selectedBranch === b.id ? 'var(--primary)' : 'var(--cream-2)'}; color: ${selectedBranch === b.id ? 'var(--cream)' : 'var(--ink)'};">${b.name}</button>`).join('')}
       </div>` : ''}
+      <div style="padding: 12px 20px; background: var(--cream-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <span style="font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em;">📅 Month:</span>
+        <select onchange="App.state.rankingMonth = this.value; App.render();" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; flex: 1; min-width: 160px;">
+          ${availMonths.slice(0, 12).map(m => {
+            const d = new Date(m + '-01');
+            return `<option value="${m}" ${selectedRankMonth === m ? 'selected' : ''}>${d.toLocaleDateString('en-MY', {month: 'long', year: 'numeric'})}</option>`;
+          }).join('')}
+        </select>
+        ${selectedRankMonth !== Logic.currentMonthYM() ? `<button onclick="App.state.rankingMonth = null; App.render();" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--cream); font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;">↻ Current</button>` : ''}
+      </div>
       <div class="tabs">
         <button class="tab ${tab === 'cs' ? 'active' : ''}" onclick="App.setTab('adminRank','cs')">CS Ranking</button>
         <button class="tab ${tab === 'team' ? 'active' : ''}" onclick="App.setTab('adminRank','team')">Team Ranking</button>
