@@ -1572,20 +1572,22 @@ const DB = {
     const cases = this.cases();
     const user = Auth.current();
     
-    // Check duplicate by IC
-const existing = cases.filter(c => c.ic === data.ic && c.branch_id === data.branch_id);
-const currentYM = data.date_payslip?.slice(0, 7) || new Date().toISOString().slice(0, 7);
-const sameMonthCase = existing.find(c => c.date_payslip?.slice(0, 7) === currentYM);
-const isDuplicate = !!sameMonthCase;
-    const originalCase = isDuplicate ? existing[0] : null;
+    // AUTO duplicate detection: ANY case dengan same IC + branch → flag duplicate
+    // Original = earliest case by date_payslip (or id if no date)
+    const existing = cases.filter(c => c.ic === data.ic && c.branch_id === data.branch_id);
+    const sortedExisting = existing.slice().sort((a, b) => 
+      (a.date_payslip || '9999').localeCompare(b.date_payslip || '9999')
+    );
+    const originalCase = sortedExisting[0] || null;
+    const isDuplicate = !!originalCase;
     
     const newCase = { 
       id: 'c' + Date.now(), 
       ...data,
       branch_id: data.branch_id || this.user(data.source_cs_id)?.branch_id || null,
       is_duplicate: isDuplicate,
-original_keyer: isDuplicate ? (sameMonthCase?.source_cs_id || null) : null,
-duplicate_of:   isDuplicate ? (sameMonthCase?.id || null) : null,
+original_keyer: isDuplicate ? (originalCase?.source_cs_id || null) : null,
+duplicate_of:   isDuplicate ? (originalCase?.id || null) : null,
       audit_log: [{
         date: new Date().toISOString(),
         by: user?.id || 'system',
@@ -1678,22 +1680,38 @@ duplicate_of:   isDuplicate ? (sameMonthCase?.id || null) : null,
     
 cases[idx] = { ...before, ...updates };
     
-    // RECHECK DUPLICATE — if IC / branch / date_payslip changed, recompute is_duplicate
-    if ('ic' in updates || 'branch_id' in updates || 'date_payslip' in updates) {
+    // RECHECK DUPLICATE — if IC / branch changed, recompute is_duplicate
+    // ANY case dengan same IC + branch → flag duplicate (earliest = original)
+    if ('ic' in updates || 'branch_id' in updates) {
       const c = cases[idx];
-      const ym = c.date_payslip?.slice(0, 7);
-      if (c.ic && c.branch_id && ym) {
-        const otherSameMonth = cases.find(x => 
+      if (c.ic && c.branch_id) {
+        const otherCases = cases.filter(x => 
           x.id !== c.id && 
           x.ic === c.ic && 
-          x.branch_id === c.branch_id && 
-          x.date_payslip?.slice(0, 7) === ym
+          x.branch_id === c.branch_id
         );
-        cases[idx].is_duplicate = !!otherSameMonth;
-        if (otherSameMonth) {
-          cases[idx].duplicate_of = otherSameMonth.id;
-          cases[idx].original_keyer = otherSameMonth.source_cs_id;
+        if (otherCases.length > 0) {
+          // Sort by date — earliest = original
+          const sortedOthers = otherCases.slice().sort((a, b) => 
+            (a.date_payslip || '9999').localeCompare(b.date_payslip || '9999')
+          );
+          // If this case is EARLIER than all others → it's the original, not duplicate
+          const myDate = c.date_payslip || '9999';
+          const earlierExists = sortedOthers.some(o => 
+            (o.date_payslip || '9999') < myDate || 
+            ((o.date_payslip || '9999') === myDate && o.id < c.id)
+          );
+          if (earlierExists) {
+            cases[idx].is_duplicate = true;
+            cases[idx].duplicate_of = sortedOthers[0].id;
+            cases[idx].original_keyer = sortedOthers[0].source_cs_id;
+          } else {
+            cases[idx].is_duplicate = false;
+            cases[idx].duplicate_of = null;
+            cases[idx].original_keyer = null;
+          }
         } else {
+          cases[idx].is_duplicate = false;
           cases[idx].duplicate_of = null;
           cases[idx].original_keyer = null;
         }
@@ -2684,8 +2702,8 @@ const Logic = {
     // KPI count = cases that were submitted AND still alive (NOT rejected, NOT on_hold) - item 4 requirement
     // Rejected this month doesn't count toward submit/KPI commission
     // On hold also excluded — case is paused, not actively in submission
-    const submitted = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').length;
-    const disbursed = disburseCases.filter(c => !c.is_duplicate).length;
+    const submitted = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').length;
+    const disbursed = disburseCases.length;
     const rejected = rejectCases.filter(c => !c.is_duplicate).length;
     const newCount = validPayslip.filter(c => c.status === 'new').length;
     const inProgress = validPayslip.filter(c => ['contacted', 'proposed', 'submitted', 'approved'].includes(c.status)).length;
@@ -2696,7 +2714,7 @@ const Logic = {
     const pending = this.pendingCases({ csId }).filter(c => !c.is_duplicate).length;
     const potential = validPayslip.filter(c => c.status === 'potential').length;
     const onHold = validPayslip.filter(c => c.status === 'on_hold').length;
-    const disburseAmount = disburseCases.filter(c => !c.is_duplicate).reduce((s,c) => s + (c.disburse_amount || 0), 0);
+    const disburseAmount = disburseCases.reduce((s,c) => s + (c.disburse_amount || 0), 0);
     const lostAmount = rejectCases.filter(c => !c.is_duplicate).reduce((s,c) => s + (c.loan_amount || 0), 0);
     
     return { 
@@ -2721,12 +2739,12 @@ const Logic = {
     const validPayslip = payslipCases.filter(c => !c.is_duplicate);
     const total = validPayslip.length;
     // KPI count excludes rejected AND on_hold cases this month
-    const submitted = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').length;
-    const disbursed = disburseCases.filter(c => !c.is_duplicate).length;
+    const submitted = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').length;
+    const disbursed = disburseCases.length;
     const newCount = validPayslip.filter(c => c.status === 'new').length;
     // KFI is on the disbursing leader (not original CS), so include all disbursed by this leader
     const kfiAmount = disburseCases.reduce((s,c) => s + (c.disburse_amount || 0), 0);
-    const loanSubmission = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').reduce((s,c) => s + (c.loan_amount || 0), 0);
+    const loanSubmission = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').reduce((s,c) => s + (c.loan_amount || 0), 0);
     const rejected = rejectCases.filter(c => !c.is_duplicate).length;
     const lostAmount = rejectCases.filter(c => !c.is_duplicate).reduce((s,c) => s + (c.loan_amount || 0), 0);
     
@@ -2822,7 +2840,7 @@ const Logic = {
     // Submit lump-sum bonus (item 4) - SOLO ONLY (TL doesn't earn this)
     // Count cases submitted this month, excluding rejected (item 4: 当月reject的话就不算kpi)
     const submitCases = this.monthlySubmitCases({ leaderId, ym });
-    const validKpi = submitCases.filter(c => !c.is_duplicate && c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').length;
+    const validKpi = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').length;
     let submitLump = 0, submitTier = null;
     const submitTiers = stats.isSolo ? SOLO_SUBMIT_TIERS : [];  // TL has no submit tiers
     if (stats.isSolo) {
@@ -2842,7 +2860,7 @@ const Logic = {
     // For each bonus_package, check disburse amount for that package this month
     let bonusCom = 0;
     const bonusBreakdown = [];
-    const allDisburseCases = this.monthlyDisburseCases({ leaderId, ym }).filter(c => !c.is_duplicate);
+    const allDisburseCases = this.monthlyDisburseCases({ leaderId, ym });
     
     if (BONUS_PACKAGES && BONUS_PACKAGES.length > 0) {
       for (const bp of BONUS_PACKAGES) {
@@ -3952,7 +3970,6 @@ setSearchCS(val) {
       <div class="modal-title">${esc(c.customer_name)} ${c.is_duplicate ? '<span style="background: var(--warning-bg); color: var(--warning); font-size: 10px; padding: 3px 8px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; vertical-align: middle;">Duplicate</span>' : ''}</div>
       <div class="modal-sub">IC: ${c.ic || '—'} · ${phoneLink(c.phone, true)}</div>
 ${c.is_duplicate ? (() => {
-        // Determine viewer tier (visibility level)
         const tier = (user.role === 'admin' || user.role === 'hq') ? 3
                     : (user.role === 'manager' || user.role === 'kerani') ? 2
                     : 1;  // cs, leader, solo
@@ -3982,11 +3999,7 @@ ${c.is_duplicate ? (() => {
         }
         
         return `<div class="info-banner" style="background: #FFF0E6; border-left-color: #E67E22; color: #8B4513; margin-bottom: 12px;">${body}</div>`;
-      })() : (Permissions.canEditAllCases(user) && c.ic && DB.cases().some(x => x.ic === c.ic && x.id !== c.id && x.branch_id === c.branch_id) ? `
-        <div class="info-banner" style="background: #FEF3C7; border-left-color: #F59E0B; color: #92400E; margin-bottom: 12px; font-size: 12px;">
-          ⚠ Other case(s) dengan IC sama dijumpai dalam branch ini. <a onclick="App.flagAsDuplicate('${c.id}')" style="color: #DC2626; font-weight: 700; cursor: pointer; text-decoration: underline;">Mark this as duplicate →</a>
-        </div>
-      ` : '')}
+      })() : ''}
       
       ${/* AUTO Cross-branch detection (Boss/HQ only) — finds same IC in OTHER branches */ ''}
       ${(user.role === 'admin' || user.role === 'hq') && c.ic ? (() => {
