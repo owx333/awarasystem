@@ -2209,18 +2209,21 @@ const Auth = {
       return { ok: false, error: 'Akaun ini telah dinyahaktifkan. Sila hubungi Manager atau Boss.' };
     }
     
-    // GLOBAL lockout check (synced via Firestore — can't bypass by clearing browser data)
+    // GLOBAL lockout check (synced via Firestore — single source of truth)
     if (user.locked) {
       const manager = DB.users().find(u => ['admin', 'manager', 'hq'].includes(u.role) && (u.branch_id === user.branch_id || u.role === 'admin' || u.role === 'hq'));
+      // Also clear local stale lockout (in case staff's localStorage still has it)
+      const all = DB.get(DB.K.loginAttempts, {});
+      if (all[user.id]) {
+        // Keep count but don't lock — let global flag drive
+        all[user.id].lockedAt = null;
+        DB.set(DB.K.loginAttempts, all);
+      }
       return { ok: false, locked: true, error: `Akaun dikunci selepas 3 cubaan gagal. Sila hubungi ${manager ? manager.name : 'Manager / Boss'} untuk buka semula.` };
     }
     
-    // Legacy local lockout check (fallback)
-    const attempts = DB.loginAttempts(user.id);
-    if (attempts.lockedAt) {
-      const manager = DB.users().find(u => ['admin', 'manager', 'hq'].includes(u.role) && u.branch_id === user.branch_id);
-      return { ok: false, locked: true, error: `Akaun dikunci selepas 3 cubaan gagal. Sila hubungi ${manager ? manager.name : 'Manager'} untuk buka semula.` };
-    }
+    // No legacy local check — user.locked is single source of truth (cleared when Boss unlocks via Firestore sync)
+    // This ensures unlock propagates correctly across all devices
     
     // Password verification — supports plaintext, legacy unsalted hash, and salted "salt$hash".
     const stored = user.password;
