@@ -3326,6 +3326,12 @@ this.bindCommonEvents();
   // ============ CHANGE PASSWORD ============
   // force=true → cannot be dismissed (used when password is default/weak)
   openChangePassword(force = false) {
+    // Only Boss/Manager/HQ can change own password (per business rule)
+    // 'force' bypass allowed when default/weak password forced change
+    if (!force && !['admin', 'manager', 'hq'].includes(Auth.current()?.role)) { 
+      toast('Sila hubungi Boss / Manager / HQ untuk tukar password'); 
+      return; 
+    }
     const user = Auth.current();
     if (!user) return;
     showModal(`
@@ -7988,7 +7994,6 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
         { icon: 'export', label: 'Export', screen: 'admin-export' },
       ];
     }
-    items.push({ icon: 'lock', label: 'Password', action: 'changePassword' });
     items.push({ icon: 'logout', label: 'Logout', action: 'logout' });
     
     const icons = {
