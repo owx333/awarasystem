@@ -3274,7 +3274,11 @@ function hideModal() {
 }
 
 // Status flow helper
-function nextStatuses(current) {
+function nextStatuses(current, user) {
+  // Admin/Manager/HQ override: allow transition to ANY other status (correct mistakes)
+  if (user && Permissions.canEditAllCases(user)) {
+    return Object.keys(STATUS_LABELS).filter(s => s !== current);
+  }
   return STATUS_FLOW[current] || [];
 }
 
@@ -3977,10 +3981,15 @@ setSearchCS(val) {
     const canSetFollowUp = canEdit || (isCSOnly && c.source_cs_id === user.id);
     
     const remarksHtml = (c.remarks || []).length === 0 ? '<div style="font-size:12px; color: var(--ink-3); font-style: italic; padding: 4px;">No remarks yet.</div>' :
-      (c.remarks || []).map(r => `
-        <div style="background: var(--cream); border-left: 3px solid var(--accent); padding: 8px 12px; margin-bottom: 6px; border-radius: 4px;">
-          <div style="font-size: 10px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">${new Date(r.date).toLocaleDateString('en-MY', {day:'numeric',month:'short'})} · ${DB.user(r.by)?.name || r.by}</div>
-          <div style="font-size: 13px; color: var(--ink); margin-top: 2px;">${r.text}</div>
+      (c.remarks || []).map((r, idx) => `
+        <div style="background: var(--cream); border-left: 3px solid var(--accent); padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; position: relative;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="flex:1;">
+              <div style="font-size: 10px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">${new Date(r.date).toLocaleDateString('en-MY', {day:'numeric',month:'short'})} · ${DB.user(r.by)?.name || r.by}</div>
+              <div style="font-size: 13px; color: var(--ink); margin-top: 2px;">${r.text}</div>
+            </div>
+            ${Permissions.canEditAllCases(user) ? `<button onclick="App.deleteRemark('${c.id}', ${idx})" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 16px; padding: 2px 6px; opacity: 0.5;" title="Padam remark">🗑</button>` : ''}
+          </div>
         </div>
       `).join('');
     
@@ -4187,12 +4196,12 @@ ${isAdminLike ? `
         ` : ''}
       </div>
       
-      ${canEdit && nextStatuses(c.status).length > 0 ? `
+      ${canEdit && nextStatuses(c.status, user).length > 0 ? `
         <div class="form-group" style="margin-top: 14px;">
-          <label>Update Status</label>
+          <label>Update Status${Permissions.canEditAllCases(user) ? ' <span style="color:#7C3AED;font-size:10px;font-weight:700;">(Admin Override · any status allowed)</span>' : ''}</label>
           <div class="status-chips">
             <div class="status-chip active ${c.status}">${STATUS_LABELS[c.status]}</div>
-            ${nextStatuses(c.status).map(s => `<div class="status-chip ${s}" onclick="App.updateCaseStatus('${c.id}','${s}')">${STATUS_LABELS[s]}</div>`).join('')}
+            ${nextStatuses(c.status, user).map(s => `<div class="status-chip ${s}" onclick="App.updateCaseStatus('${c.id}','${s}')">${STATUS_LABELS[s]}</div>`).join('')}
           </div>
         </div>
       ` : ''}
@@ -4217,6 +4226,10 @@ ${stage2Done && canProcessStage2 ? (
       
       ${(c.audit_log || []).length > 0 ? `
         <button class="btn-secondary" onclick="App.viewAuditLog('${c.id}')" style="margin-top: 8px;">View Audit Log (${(c.audit_log || []).length} changes)</button>
+      ` : ''}
+      
+      ${Permissions.canEditAllCases(user) ? `
+        <button class="btn-secondary" style="background: #FAF5FF; color: #7C3AED; border: 1px solid rgba(124,58,237,0.3); font-weight: 800; margin-top: 14px;" onclick="App.openAdminOverride('${c.id}')">🛠️ Admin Override · Edit Dates / Reason / Status</button>
       ` : ''}
       
       ${canDelete ? `
@@ -4333,6 +4346,119 @@ ${stage2Done && canProcessStage2 ? (
     hideModal();
     toast('✓ Case marked as duplicate · excluded dari stats');
     this.render();
+  },
+  
+  // ============ ADMIN OVERRIDE · Edit dates / reason / status (Manager/HQ/Boss only) ============
+  openAdminOverride(caseId) {
+    if (!Permissions.canEditAllCases(Auth.current())) { toast('No permission'); return; }
+    const c = DB.caseById(caseId);
+    if (!c) return;
+    
+    showModal(`
+      <div class="modal-title">🛠️ Admin Override</div>
+      <div class="modal-sub">${esc(c.customer_name)} · IC: ${c.ic || '—'}</div>
+      
+      <div class="info-banner" style="background: #FAF5FF; border-left-color: #7C3AED; color: #6B21A8; margin: 0 0 14px;">
+        <strong>⚠ Admin Override.</strong> Edit any field directly. Changes logged in audit. Stats akan recalculate automatically.
+      </div>
+      
+      <div class="form-group">
+        <label>Status</label>
+        <select id="ov-status" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit;">
+          ${Object.keys(STATUS_LABELS).map(s => `<option value="${s}" ${c.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}
+        </select>
+      </div>
+      
+      <div style="font-size:11px;color:var(--ink-3);font-weight:800;text-transform:uppercase;letter-spacing:0.12em;margin:14px 0 6px;">📅 Date Fields</div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date Payslip</label>
+          <input type="date" id="ov-date-payslip" value="${c.date_payslip || ''}">
+        </div>
+        <div class="form-group">
+          <label>Date Submitted</label>
+          <input type="date" id="ov-date-submitted" value="${c.date_submitted || ''}">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date Approved</label>
+          <input type="date" id="ov-date-approved" value="${c.date_approved || ''}">
+        </div>
+        <div class="form-group">
+          <label>Date Disbursed</label>
+          <input type="date" id="ov-date-disbursed" value="${c.date_disbursed || ''}">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Date Rejected</label>
+        <input type="date" id="ov-date-rejected" value="${c.date_rejected || ''}">
+      </div>
+      
+      <div style="font-size:11px;color:var(--ink-3);font-weight:800;text-transform:uppercase;letter-spacing:0.12em;margin:14px 0 6px;">📝 Reason / Amount</div>
+      
+      <div class="form-group">
+        <label>Rejection Reason</label>
+        <textarea id="ov-rejection-reason" rows="2" placeholder="Sebab reject..." style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; resize: vertical;">${c.rejection_reason || ''}</textarea>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Loan Amount (RM)</label>
+          <input type="number" id="ov-loan-amount" value="${c.loan_amount || ''}" min="0" step="100">
+        </div>
+        <div class="form-group">
+          <label>Approved Amount (RM)</label>
+          <input type="number" id="ov-approved-amount" value="${c.approved_amount || ''}" min="0" step="100">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Disburse Amount (RM)</label>
+        <input type="number" id="ov-disburse-amount" value="${c.disburse_amount || ''}" min="0" step="0.01">
+      </div>
+      
+      <button class="submit-btn" style="background: #7C3AED; color: white;" onclick="App.saveAdminOverride('${caseId}')">💾 Save Override</button>
+      <button class="btn-secondary" onclick="App.viewCase('${caseId}')">Cancel</button>
+    `);
+  },
+  
+  saveAdminOverride(caseId) {
+    if (!Permissions.canEditAllCases(Auth.current())) { toast('No permission'); return; }
+    
+    const updates = {
+      status:           document.getElementById('ov-status').value,
+      date_payslip:     document.getElementById('ov-date-payslip').value || null,
+      date_submitted:   document.getElementById('ov-date-submitted').value || null,
+      date_approved:    document.getElementById('ov-date-approved').value || null,
+      date_disbursed:   document.getElementById('ov-date-disbursed').value || null,
+      date_rejected:    document.getElementById('ov-date-rejected').value || null,
+      rejection_reason: document.getElementById('ov-rejection-reason').value.trim() || null,
+      loan_amount:      parseFloat(document.getElementById('ov-loan-amount').value) || null,
+      approved_amount:  parseFloat(document.getElementById('ov-approved-amount').value) || null,
+      disburse_amount:  parseFloat(document.getElementById('ov-disburse-amount').value) || null,
+    };
+    
+    DB.updateCase(caseId, updates);
+    hideModal();
+    toast('✓ Admin override saved · stats recalculated');
+    this.viewCase(caseId);
+  },
+  
+  // Delete a remark (Admin/Manager/HQ only)
+  deleteRemark(caseId, remarkIdx) {
+    if (!Permissions.canEditAllCases(Auth.current())) { toast('No permission'); return; }
+    if (!confirm('Padam remark ini?')) return;
+    const c = DB.caseById(caseId);
+    if (!c || !c.remarks) return;
+    const remarks = c.remarks.slice();
+    remarks.splice(remarkIdx, 1);
+    DB.updateCase(caseId, { remarks });
+    toast('Remark padam ✓');
+    this.viewCase(caseId);
   },
 
   saveAdminDetail(caseId) {
