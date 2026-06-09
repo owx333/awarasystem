@@ -4009,14 +4009,14 @@ ${c.is_duplicate ? (() => {
         let body = '';
         if (tier === 1) {
           // Minimal: leader name only, no customer detail link
-          body = `<strong>⚠ Duplicate Case.</strong> Original by Leader <strong>${originalLeader?.name || '—'}</strong>'s team. Tidak dikira KPI/KFI.`;
+          body = `<strong>⚠ Duplicate Case.</strong> Original by Leader <strong>${originalLeader?.name || '—'}</strong>'s team. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/KFI tetap dikira kalau submit/disburse</span>`;
         } else if (tier === 2) {
           // Manager: team info + view original link
-          body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong>'s team. Tidak dikira KPI/KFI.
+        body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong>'s team. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/KFI dikira kalau submit/disburse</span>
             <br><a onclick="App.viewOriginalDuplicate('${c.id}')" style="color: var(--accent-deep); font-weight: 700; cursor: pointer; text-decoration: underline;">View Original Case →</a>`;
         } else {
           // Boss/HQ: full details + branch info
-          body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong> · Branch <strong>${originalBranch?.name || '—'}</strong>. Tidak dikira KPI/KFI.
+          body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong> · Branch <strong>${originalBranch?.name || '—'}</strong>. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/KFI dikira kalau submit/disburse</span>
             <br><a onclick="App.viewOriginalDuplicate('${c.id}')" style="color: var(--accent-deep); font-weight: 700; cursor: pointer; text-decoration: underline;">View Original Case →</a>`;
         }
         
