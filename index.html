@@ -3339,6 +3339,11 @@ const App = {
         content = this.renderAdminAnnouncements(user); break;
       case 'admin-export': 
         content = this.renderAdminExport(user); break;
+      case 'admin-daily-report':
+        if (user.role === 'kerani' || user.role === 'cs' || user.role === 'leader' || user.role === 'solo') { 
+          this.state.currentScreen = 'admin-dashboard'; return this.render(); 
+        }
+        content = this.renderDailyReportDashboard(user); break;
       case 'admin-settings': 
         if (!Permissions.canEditSettings(user)) { content = this.renderAdminDashboard(user); break; }
         content = this.renderAdminSettings(user); break;
@@ -6780,6 +6785,430 @@ const ic = document.getElementById('f-ic').value.replace(/[^0-9]/g, '');
     `;
   },
   
+  // ═══════════════════════════════════════════════════════
+  // DAILY REPORT DASHBOARD · For Boss/Manager/HQ (3 tabs)
+  // ═══════════════════════════════════════════════════════
+  renderDailyReportDashboard(user) {
+    const tab = this.state.tabState.dailyReport || 'daily';
+    const branches = DB.branches().filter(b => b.id !== 'hq');
+    const canPickBranch = Permissions.canViewAllBranches(user) || user.role === 'admin';
+    const selectedBranch = canPickBranch ? (this.state.dailyDashBranch || 'all') : user.branch_id;
+    
+    return this.topBar(user) + `
+      <div class="content" style="padding: 16px;">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div class="page-title">📊 Daily Report Dashboard</div>
+            <div style="font-size:11px;color:var(--ink-3);font-weight:600;">Track activity · Spot who forgot to fill</div>
+          </div>
+          ${canPickBranch ? `
+            <select onchange="App.state.dailyDashBranch = this.value; App.render();" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-family: inherit; font-size: 12px; font-weight: 700;">
+              <option value="all" ${selectedBranch === 'all' ? 'selected' : ''}>All Branches</option>
+              ${branches.map(b => `<option value="${b.id}" ${selectedBranch === b.id ? 'selected' : ''}>${b.name}</option>`).join('')}
+            </select>
+          ` : ''}
+        </div>
+        
+        <div class="tabs" style="margin-top: 12px;">
+          <button class="tab ${tab === 'daily' ? 'active' : ''}" onclick="App.setTab('dailyReport','daily')">📋 Daily View</button>
+          <button class="tab ${tab === 'calendar' ? 'active' : ''}" onclick="App.setTab('dailyReport','calendar')">📅 Calendar</button>
+          <button class="tab ${tab === 'weekly' ? 'active' : ''}" onclick="App.setTab('dailyReport','weekly')">📈 Weekly Trend</button>
+        </div>
+        
+        ${tab === 'daily' ? this.renderDailyViewTab(selectedBranch) : ''}
+        ${tab === 'calendar' ? this.renderCalendarTab(selectedBranch) : ''}
+        ${tab === 'weekly' ? this.renderWeeklyTab(selectedBranch) : ''}
+      </div>
+    `;
+  },
+  
+  // ── TAB 1: Daily View · Table of all staff for one day ──
+  renderDailyViewTab(selectedBranch) {
+    const today = new Date().toISOString().slice(0, 10);
+    const selectedDate = this.state.dailyDashDate || today;
+    
+    // Get staff (CS / Leader / Solo only)
+    let staffList = DB.users().filter(u => 
+      !u.inactive && ['cs', 'leader', 'solo'].includes(u.role)
+    );
+    if (selectedBranch !== 'all') staffList = staffList.filter(u => u.branch_id === selectedBranch);
+    
+    // Group by team (leader → CS members)
+    const teams = {};
+    const solos = [];
+    staffList.forEach(u => {
+      if (u.role === 'solo') solos.push(u);
+      else if (u.role === 'leader') {
+        const tid = u.id;
+        if (!teams[tid]) teams[tid] = { leader: u, members: [] };
+        else teams[tid].leader = u;
+      } else if (u.role === 'cs') {
+        const tid = u.leader_id || '_no_leader';
+        if (!teams[tid]) teams[tid] = { leader: null, members: [] };
+        teams[tid].members.push(u);
+      }
+    });
+    
+    // For each staff, fetch their activity on selectedDate
+    const getAct = (uid) => DB.activities().find(a => a.cs_id === uid && a.date === selectedDate) || { calls: 0, whatsapp: 0, payslip: 0 };
+    
+    let grandCalls = 0, grandWa = 0, grandPs = 0, zeroCount = 0;
+    
+    const renderStaffRow = (u, indent = false) => {
+      const a = getAct(u.id);
+      const total = a.calls + a.whatsapp + a.payslip;
+      const isZero = total === 0;
+      if (isZero) zeroCount++;
+      grandCalls += a.calls; grandWa += a.whatsapp; grandPs += a.payslip;
+      const branchName = DB.branch(u.branch_id)?.name || '';
+      
+      return `
+        <div onclick="App.editStaffDaily('${u.id}')" style="display: grid; grid-template-columns: 30px 1fr 60px 50px 50px 60px 30px; gap: 6px; align-items: center; padding: 8px ${indent ? '0 8px 24px' : '10px'}; border-bottom: 1px solid var(--border-2); cursor: pointer; ${isZero ? 'background: rgba(239,68,68,0.06);' : ''}" onmouseover="this.style.background='${isZero ? 'rgba(239,68,68,0.12)' : 'var(--cream-2)'}'" onmouseout="this.style.background='${isZero ? 'rgba(239,68,68,0.06)' : 'transparent'}'">
+          <div style="font-size: 9px; font-weight: 800; color: ${u.role === 'solo' ? '#7C3AED' : u.role === 'leader' ? '#0891B2' : 'var(--ink-3)'}; text-transform: uppercase;">${u.role === 'solo' ? 'S' : u.role === 'leader' ? 'L' : 'CS'}</div>
+          <div style="display: flex; flex-direction: column;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--ink);">${esc(u.name)}</div>
+            ${selectedBranch === 'all' ? `<div style="font-size: 10px; color: var(--ink-3);">${branchName}</div>` : ''}
+          </div>
+          <div style="text-align: right; font-size: 13px; font-weight: ${a.calls > 0 ? '700' : '400'}; color: ${a.calls >= 30 ? 'var(--success)' : (a.calls > 0 ? 'var(--ink-2)' : 'var(--danger)')};">${a.calls}</div>
+          <div style="text-align: right; font-size: 13px; font-weight: ${a.whatsapp > 0 ? '700' : '400'}; color: ${a.whatsapp >= 10 ? 'var(--success)' : (a.whatsapp > 0 ? 'var(--ink-2)' : 'var(--danger)')};">${a.whatsapp}</div>
+          <div style="text-align: right; font-size: 13px; font-weight: ${a.payslip > 0 ? '700' : '400'}; color: ${a.payslip >= 1 ? 'var(--success)' : (a.payslip > 0 ? 'var(--ink-2)' : 'var(--danger)')};">${a.payslip}</div>
+          <div style="text-align: right; font-size: 13px; font-weight: 800; color: ${total === 0 ? 'var(--danger)' : 'var(--primary)'};">${total}</div>
+          <div style="text-align: center; font-size: 14px;">${isZero ? '⚠' : ''}</div>
+        </div>
+      `;
+    };
+    
+    const renderTeamGroup = (teamId, team) => {
+      if (!team.leader && team.members.length === 0) return '';
+      const teamCalls = (team.leader ? getAct(team.leader.id).calls : 0) + team.members.reduce((s, m) => s + getAct(m.id).calls, 0);
+      const teamWa = (team.leader ? getAct(team.leader.id).whatsapp : 0) + team.members.reduce((s, m) => s + getAct(m.id).whatsapp, 0);
+      const teamPs = (team.leader ? getAct(team.leader.id).payslip : 0) + team.members.reduce((s, m) => s + getAct(m.id).payslip, 0);
+      const teamTotal = teamCalls + teamWa + teamPs;
+      
+      return `
+        <div style="margin-top: 12px; background: var(--cream); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-2);">
+          <div style="padding: 10px 14px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: var(--accent); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.04em;">📍 Team ${esc(team.leader?.name || 'No Leader')}</div>
+            <div style="font-size: 11px; opacity: 0.85;">${team.members.length + (team.leader ? 1 : 0)} ahli · Total ${teamTotal}</div>
+          </div>
+          ${team.leader ? renderStaffRow(team.leader) : ''}
+          ${team.members.map(m => renderStaffRow(m, true)).join('')}
+          <div style="display: grid; grid-template-columns: 30px 1fr 60px 50px 50px 60px 30px; gap: 6px; padding: 8px 10px; background: rgba(245,197,24,0.08); font-weight: 700; font-size: 11px; border-top: 1px solid var(--border-2);">
+            <div></div>
+            <div style="color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;">Team Total</div>
+            <div style="text-align: right; color: var(--primary);">${teamCalls}</div>
+            <div style="text-align: right; color: var(--primary);">${teamWa}</div>
+            <div style="text-align: right; color: var(--primary);">${teamPs}</div>
+            <div style="text-align: right; color: var(--accent-deep); font-weight: 800;">${teamTotal}</div>
+            <div></div>
+          </div>
+        </div>
+      `;
+    };
+    
+    return `
+      <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <input type="date" value="${selectedDate}" max="${today}" onchange="App.state.dailyDashDate = this.value; App.render();" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700;">
+        ${selectedDate !== today ? `<button class="btn-secondary" onclick="App.state.dailyDashDate = null; App.render();" style="padding: 6px 12px; font-size: 11px;">↻ Today</button>` : ''}
+        <div style="flex:1;"></div>
+        <button class="btn-secondary" onclick="App.exportDailyDashCSV()" style="padding: 6px 12px; font-size: 11px;">⬇ Export CSV</button>
+      </div>
+      
+      <!-- Header -->
+      <div style="margin-top: 12px; display: grid; grid-template-columns: 30px 1fr 60px 50px 50px 60px 30px; gap: 6px; padding: 8px 10px; background: var(--cream-2); border-radius: 10px 10px 0 0; font-size: 10px; font-weight: 800; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; border: 1px solid var(--border-2); border-bottom: none;">
+        <div>Role</div>
+        <div>Name</div>
+        <div style="text-align: right;">Calls</div>
+        <div style="text-align: right;">WA</div>
+        <div style="text-align: right;">PS</div>
+        <div style="text-align: right;">Total</div>
+        <div></div>
+      </div>
+      
+      ${Object.entries(teams).map(([tid, team]) => renderTeamGroup(tid, team)).join('')}
+      
+      ${solos.length > 0 ? `
+        <div style="margin-top: 12px; background: var(--cream); border-radius: 12px; overflow: hidden; border: 1px solid #7C3AED40;">
+          <div style="padding: 10px 14px; background: linear-gradient(135deg, #7C3AED, #6B21A8); color: white; font-size: 12px; font-weight: 800;">⚡ SOLO Performers (${solos.length})</div>
+          ${solos.map(s => renderStaffRow(s)).join('')}
+        </div>
+      ` : ''}
+      
+      <!-- Grand Total -->
+      <div style="margin-top: 14px; padding: 14px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: var(--accent); border-radius: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 12px; align-items: center;">
+          <div style="font-size: 13px; font-weight: 800; letter-spacing: 0.04em;">GRAND TOTAL</div>
+          <div style="text-align: right;"><div style="font-size: 10px; opacity: 0.7;">Calls</div><div style="font-size: 20px; font-weight: 800;">${grandCalls}</div></div>
+          <div style="text-align: right;"><div style="font-size: 10px; opacity: 0.7;">WA</div><div style="font-size: 20px; font-weight: 800;">${grandWa}</div></div>
+          <div style="text-align: right;"><div style="font-size: 10px; opacity: 0.7;">PS</div><div style="font-size: 20px; font-weight: 800;">${grandPs}</div></div>
+          <div style="text-align: right;"><div style="font-size: 10px; opacity: 0.7;">Sum</div><div style="font-size: 24px; font-weight: 800;">${grandCalls + grandWa + grandPs}</div></div>
+        </div>
+        ${zeroCount > 0 ? `<div style="margin-top: 10px; padding: 8px 12px; background: rgba(239,68,68,0.2); border-radius: 8px; font-size: 12px; font-weight: 700;">⚠ ${zeroCount} staff dengan 0 activity · check kalau lupa fill</div>` : ''}
+      </div>
+      
+      <div style="margin-top: 10px; font-size: 11px; color: var(--ink-3); padding: 8px;">
+        💡 Click any staff row → Edit Daily Report untuk staff tu
+      </div>
+    `;
+  },
+  
+  // ── TAB 2: Calendar Heatmap · One staff, full month ──
+  renderCalendarTab(selectedBranch) {
+    const ym = this.state.dailyDashMonth || new Date().toISOString().slice(0,7);
+    let staffList = DB.users().filter(u => 
+      !u.inactive && ['cs', 'leader', 'solo'].includes(u.role)
+    );
+    if (selectedBranch !== 'all') staffList = staffList.filter(u => u.branch_id === selectedBranch);
+    
+    const selectedStaffId = this.state.dailyDashStaff || (staffList[0]?.id || '');
+    const selectedStaff = DB.user(selectedStaffId);
+    
+    if (!selectedStaff) {
+      return `<div style="margin-top: 20px; padding: 30px; text-align: center; color: var(--ink-3);">No staff available</div>`;
+    }
+    
+    // Get all activities for this staff this month
+    const [year, month] = ym.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const acts = DB.activities().filter(a => a.cs_id === selectedStaffId && a.date.startsWith(ym));
+    
+    let totalCalls = 0, totalWa = 0, totalPs = 0, activeDays = 0, forgotDays = 0;
+    
+    const dayCells = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dStr = `${ym}-${String(day).padStart(2,'0')}`;
+      const a = acts.find(x => x.date === dStr);
+      const d = new Date(dStr);
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      const isFuture = dStr > new Date().toISOString().slice(0,10);
+      const c = a?.calls || 0, w = a?.whatsapp || 0, p = a?.payslip || 0;
+      const total = c + w + p;
+      
+      totalCalls += c; totalWa += w; totalPs += p;
+      if (total > 0) activeDays++;
+      else if (!isWeekend && !isFuture) forgotDays++;
+      
+      let bg = '#F3F4F6'; // empty
+      let color = 'var(--ink-3)';
+      if (isFuture) { bg = '#FAFAFA'; color = 'var(--ink-3)'; }
+      else if (isWeekend) { bg = '#F9FAFB'; color = '#9CA3AF'; }
+      else if (total === 0) { bg = '#FEE2E2'; color = '#991B1B'; } // forgot
+      else if (c >= 50) { bg = '#10B981'; color = 'white'; }      // active
+      else if (c >= 20) { bg = '#86EFAC'; color = '#14532D'; }    // low
+      else if (c > 0) { bg = '#FDE68A'; color = '#78350F'; }      // very low
+      
+      dayCells.push({ day, dStr, c, w, p, total, isWeekend, isFuture, bg, color });
+    }
+    
+    // Build calendar grid (with leading blanks for first day of week)
+    const firstDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
+    const offsetMonday = firstDay === 0 ? 6 : firstDay - 1; // shift to Mon start
+    
+    const today = new Date().toISOString().slice(0,7);
+    
+    return `
+      <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <select onchange="App.state.dailyDashStaff = this.value; App.render();" style="flex:1; min-width: 180px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700;">
+          ${staffList.map(u => `<option value="${u.id}" ${selectedStaffId === u.id ? 'selected' : ''}>${u.role.toUpperCase()} · ${esc(u.name)}${selectedBranch === 'all' ? ` (${DB.branch(u.branch_id)?.name || ''})` : ''}</option>`).join('')}
+        </select>
+        <input type="month" value="${ym}" max="${today}" onchange="App.state.dailyDashMonth = this.value; App.render();" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700;">
+      </div>
+      
+      <div style="margin-top: 16px; padding: 16px; background: var(--cream); border-radius: 12px; border: 1px solid var(--border-2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div>
+            <div style="font-size: 15px; font-weight: 800; color: var(--primary);">${esc(selectedStaff.name)}</div>
+            <div style="font-size: 11px; color: var(--ink-3);">${selectedStaff.role.toUpperCase()} · ${DB.branch(selectedStaff.branch_id)?.name || ''}</div>
+          </div>
+          <button class="btn-secondary" onclick="App.editStaffDaily('${selectedStaffId}')" style="padding: 6px 12px; font-size: 11px;">📅 Edit</button>
+        </div>
+        
+        <!-- Weekday headers -->
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; font-size: 10px; font-weight: 800; color: var(--ink-3); text-align: center; letter-spacing: 0.06em; margin-bottom: 6px;">
+          <div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div><div>SUN</div>
+        </div>
+        
+        <!-- Calendar grid -->
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+          ${Array(offsetMonday).fill('<div></div>').join('')}
+          ${dayCells.map(c => `
+            <div title="${c.dStr} · Calls: ${c.c} · WA: ${c.w} · PS: ${c.p}" style="aspect-ratio: 1; background: ${c.bg}; color: ${c.color}; border-radius: 8px; padding: 4px; display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; font-weight: 700; cursor: pointer; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+              <div>${c.day}</div>
+              ${c.total > 0 ? `<div style="font-size: 9px; opacity: 0.9;">${c.c}c ${c.w}w ${c.p}p</div>` : (c.isWeekend ? '' : (c.isFuture ? '' : '<div style="font-size: 14px; text-align:center;">⚠</div>'))}
+            </div>
+          `).join('')}
+        </div>
+        
+        <!-- Legend -->
+        <div style="margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; font-size: 10px; color: var(--ink-3);">
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; background: #10B981; border-radius: 3px;"></div>Active (>50 calls)</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; background: #86EFAC; border-radius: 3px;"></div>Low (20-50)</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; background: #FDE68A; border-radius: 3px;"></div>Very Low (1-20)</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; background: #FEE2E2; border-radius: 3px;"></div>Forgot ⚠</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; background: #F9FAFB; border-radius: 3px;"></div>Weekend</div>
+        </div>
+      </div>
+      
+      <!-- Month Summary -->
+      <div style="margin-top: 12px; padding: 14px; background: var(--primary); color: var(--accent); border-radius: 12px;">
+        <div style="font-size: 11px; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">Month Summary</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          <div><div style="font-size: 10px; opacity: 0.7;">Total Calls</div><div style="font-size: 18px; font-weight: 800;">${totalCalls}</div></div>
+          <div><div style="font-size: 10px; opacity: 0.7;">Total WA</div><div style="font-size: 18px; font-weight: 800;">${totalWa}</div></div>
+          <div><div style="font-size: 10px; opacity: 0.7;">Total PS</div><div style="font-size: 18px; font-weight: 800;">${totalPs}</div></div>
+          <div><div style="font-size: 10px; opacity: 0.7;">Active Days</div><div style="font-size: 18px; font-weight: 800;">${activeDays}</div></div>
+        </div>
+        ${forgotDays > 0 ? `<div style="margin-top: 10px; padding: 8px 12px; background: rgba(239,68,68,0.3); border-radius: 8px; font-size: 12px; font-weight: 700;">⚠ ${forgotDays} weekday(s) dengan 0 activity (forgot to fill?)</div>` : ''}
+      </div>
+    `;
+  },
+  
+  // ── TAB 3: Weekly Trend · Multiple staff for one week ──
+  renderWeeklyTab(selectedBranch) {
+    // Compute Monday-Sunday week
+    const today = new Date();
+    const monday = new Date(today);
+    const dow = monday.getDay() === 0 ? 7 : monday.getDay();
+    monday.setDate(monday.getDate() - dow + 1);
+    
+    const selectedMondayStr = this.state.dailyDashWeekStart || monday.toISOString().slice(0,10);
+    const startDate = new Date(selectedMondayStr);
+    
+    // Build 7 days (Mon-Sun)
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      days.push({
+        date: d.toISOString().slice(0,10),
+        label: d.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' }),
+        isFuture: d > today,
+        isWeekend: i >= 5,
+      });
+    }
+    
+    const metric = this.state.dailyDashMetric || 'calls'; // calls | whatsapp | payslip
+    
+    // Get staff
+    let staffList = DB.users().filter(u => 
+      !u.inactive && ['cs', 'leader', 'solo'].includes(u.role)
+    );
+    if (selectedBranch !== 'all') staffList = staffList.filter(u => u.branch_id === selectedBranch);
+    
+    // For each staff, fetch their 7-day activities
+    const rows = staffList.map(u => {
+      const dayValues = days.map(d => {
+        const a = DB.activities().find(x => x.cs_id === u.id && x.date === d.date);
+        return a?.[metric] || 0;
+      });
+      const total = dayValues.reduce((s, v) => s + v, 0);
+      const activeDays = dayValues.filter((v, i) => v > 0 || days[i].isWeekend).length;
+      const missingDays = dayValues.filter((v, i) => v === 0 && !days[i].isWeekend && !days[i].isFuture).length;
+      const avg = activeDays > 0 ? Math.round(total / Math.max(1, days.filter(d => !d.isFuture && !d.isWeekend).length)) : 0;
+      return { user: u, dayValues, total, avg, missingDays };
+    }).sort((a, b) => b.total - a.total);
+    
+    const maxVal = Math.max(1, ...rows.flatMap(r => r.dayValues));
+    
+    // Find best + needs attention
+    const best = rows[0];
+    const needsAttention = rows.filter(r => r.missingDays > 0).sort((a, b) => b.missingDays - a.missingDays)[0];
+    
+    return `
+      <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <input type="date" value="${selectedMondayStr}" onchange="
+          const d = new Date(this.value);
+          const dow = d.getDay() === 0 ? 7 : d.getDay();
+          d.setDate(d.getDate() - dow + 1);
+          App.state.dailyDashWeekStart = d.toISOString().slice(0,10);
+          App.render();
+        " style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700;">
+        <div style="font-size: 11px; color: var(--ink-3); font-weight: 700;">Week of ${startDate.toLocaleDateString('en-MY', {day:'numeric', month:'short'})}</div>
+        <div style="flex:1;"></div>
+        <div style="display: flex; gap: 4px;">
+          <button class="filter-chip ${metric === 'calls' ? 'active' : ''}" onclick="App.state.dailyDashMetric = 'calls'; App.render();">Calls</button>
+          <button class="filter-chip ${metric === 'whatsapp' ? 'active' : ''}" onclick="App.state.dailyDashMetric = 'whatsapp'; App.render();">WA</button>
+          <button class="filter-chip ${metric === 'payslip' ? 'active' : ''}" onclick="App.state.dailyDashMetric = 'payslip'; App.render();">Payslip</button>
+        </div>
+      </div>
+      
+      <div style="margin-top: 14px; background: var(--cream); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-2);">
+        <!-- Header -->
+        <div style="display: grid; grid-template-columns: 120px repeat(7, 1fr) 70px 50px; gap: 4px; padding: 10px 12px; background: var(--cream-2); font-size: 10px; font-weight: 800; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;">
+          <div>Staff</div>
+          ${days.map(d => `<div style="text-align: center; ${d.isWeekend ? 'opacity: 0.5;' : ''}">${d.label}</div>`).join('')}
+          <div style="text-align: right;">Total</div>
+          <div style="text-align: right;">Avg</div>
+        </div>
+        
+        ${rows.length === 0 ? '<div style="padding: 30px; text-align: center; color: var(--ink-3);">No staff for this filter</div>' :
+          rows.map(r => `
+            <div onclick="App.editStaffDaily('${r.user.id}')" style="display: grid; grid-template-columns: 120px repeat(7, 1fr) 70px 50px; gap: 4px; padding: 8px 12px; border-top: 1px solid var(--border-2); align-items: center; cursor: pointer;" onmouseover="this.style.background='var(--cream-2)'" onmouseout="this.style.background='transparent'">
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 12px; font-weight: 700; color: var(--ink);">${esc(r.user.name)}</div>
+                <div style="font-size: 9px; color: var(--ink-3); text-transform: uppercase;">${r.user.role}${selectedBranch === 'all' ? ' · ' + (DB.branch(r.user.branch_id)?.name || '') : ''}</div>
+              </div>
+              ${r.dayValues.map((v, i) => {
+                const intensity = maxVal > 0 ? (v / maxVal) : 0;
+                const bg = v === 0 ? (days[i].isWeekend ? '#F9FAFB' : (days[i].isFuture ? '#FAFAFA' : '#FEE2E2')) : `rgba(16,185,129,${Math.max(0.15, intensity)})`;
+                const color = v === 0 ? (days[i].isWeekend || days[i].isFuture ? 'var(--ink-3)' : '#991B1B') : (intensity > 0.5 ? 'white' : 'var(--ink)');
+                return `<div style="background: ${bg}; color: ${color}; border-radius: 6px; padding: 6px 4px; text-align: center; font-size: 12px; font-weight: 700;">${v || (days[i].isWeekend ? '·' : (days[i].isFuture ? '·' : '0'))}</div>`;
+              }).join('')}
+              <div style="text-align: right; font-size: 13px; font-weight: 800; color: var(--primary);">${r.total}</div>
+              <div style="text-align: right; font-size: 12px; font-weight: 700; color: var(--ink-2);">${r.avg}</div>
+            </div>
+          `).join('')
+        }
+      </div>
+      
+      ${best || needsAttention ? `
+        <div style="margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          ${best ? `
+            <div style="padding: 12px; background: linear-gradient(135deg, #10B981, #047857); color: white; border-radius: 12px;">
+              <div style="font-size: 10px; opacity: 0.85; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">🏆 Best Performer</div>
+              <div style="font-size: 15px; font-weight: 800; margin-top: 4px;">${esc(best.user.name)}</div>
+              <div style="font-size: 11px; opacity: 0.85;">${best.avg} avg ${metric}/day · ${best.total} total</div>
+            </div>
+          ` : '<div></div>'}
+          ${needsAttention ? `
+            <div style="padding: 12px; background: linear-gradient(135deg, #EF4444, #B91C1C); color: white; border-radius: 12px;">
+              <div style="font-size: 10px; opacity: 0.85; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">⚠ Needs Attention</div>
+              <div style="font-size: 15px; font-weight: 800; margin-top: 4px;">${esc(needsAttention.user.name)}</div>
+              <div style="font-size: 11px; opacity: 0.85;">${needsAttention.missingDays} missing day(s) · click to edit</div>
+            </div>
+          ` : '<div></div>'}
+        </div>
+      ` : ''}
+    `;
+  },
+  
+  // CSV export for Daily View tab
+  exportDailyDashCSV() {
+    const today = new Date().toISOString().slice(0, 10);
+    const selectedDate = this.state.dailyDashDate || today;
+    const selectedBranch = this.state.dailyDashBranch || 'all';
+    
+    let staffList = DB.users().filter(u => !u.inactive && ['cs', 'leader', 'solo'].includes(u.role));
+    if (selectedBranch !== 'all') staffList = staffList.filter(u => u.branch_id === selectedBranch);
+    
+    const rows = [['Date', 'Branch', 'Role', 'Name', 'Calls', 'WhatsApp', 'Payslip', 'Total']];
+    staffList.forEach(u => {
+      const a = DB.activities().find(x => x.cs_id === u.id && x.date === selectedDate) || {};
+      const c = a.calls || 0, w = a.whatsapp || 0, p = a.payslip || 0;
+      rows.push([selectedDate, DB.branch(u.branch_id)?.name || '', u.role, u.name, c, w, p, c + w + p]);
+    });
+    
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `daily-report-${selectedDate}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('CSV exported ✓');
+  },
+  
   exportDailyHistory(userId) {
     const ym = this.state.dailyMonth || new Date().toISOString().slice(0,7);
     const [year, month] = ym.split('-').map(Number);
@@ -8296,6 +8725,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
         { icon: 'list', label: 'Customers', screen: 'admin-customers' },
         { icon: 'trophy', label: 'Ranking', screen: 'admin-rankings' },
         { icon: 'users', label: 'Staff', screen: 'admin-staff' },
+        { icon: 'target', label: 'Daily Report', screen: 'admin-daily-report' },
         ...(Permissions.canViewAllBranches(Auth.current()) ? [{ icon: 'compare', label: 'Branches', screen: 'admin-branch-compare' }] : []),
         { icon: 'tools', label: 'Tools', action: 'openAdminTools' },
         { icon: 'export', label: 'Export', screen: 'admin-export' },
