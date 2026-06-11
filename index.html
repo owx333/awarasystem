@@ -56,7 +56,14 @@ window.__firebaseStatus = { stage: 'loading', error: null };
     window.Logger = Logger;
     if (DEBUG_MODE) console.log('🔧 DEBUG mode active · verbose logs enabled');
     
-    // ========== SHARED AUTH (Layer 2 Security) ==========
+    // ========== PER-USER AUTH FLAGS ==========
+    // Phase 1 (now): enabled=true, legacyFallback=true → staff login as usual, system
+    //   silently creates their personal Firebase Auth account on first successful login.
+    // Phase 2 (after ALL staff migrated): set legacyFallback=false AND deploy strict
+    //   firestore.rules → F12 tampering becomes impossible (server-side enforcement).
+    window.PERUSER_FLAGS = { enabled: true, legacyFallback: true };
+    
+    // ========== SHARED AUTH (Layer 2 Security · legacy, used only while legacyFallback=true) ==========
     // Auto-signin to a shared service account so Firestore rules can require auth
     // 14 staff不需要做任何事 — completely invisible. App login still uses Name+Password.
     // Without these passwords, attackers (even with API key) cannot access Firestore.
@@ -66,6 +73,10 @@ window.__firebaseStatus = { stage: 'loading', error: null };
     };
     
     async function ensureSharedAuth() {
+      // Per-user strict mode: never sign in shared account
+      if (!window.PERUSER_FLAGS.legacyFallback) {
+        return !!fbAuth.currentUser;
+      }
       // Already signed in? skip
       if (fbAuth.currentUser) {
         Logger.debug('🔐 Already signed in:', fbAuth.currentUser.email);
@@ -89,9 +100,10 @@ window.__firebaseStatus = { stage: 'loading', error: null };
       }
     }
     
-    // Keep session alive — if signed out somehow, re-sign-in
+    // Keep session alive — if signed out somehow, re-sign-in (legacy mode only;
+    // in strict per-user mode the user simply returns to the login screen)
     fbAuth.onAuthStateChanged(user => {
-      if (!user) {
+      if (!user && window.PERUSER_FLAGS.legacyFallback) {
         console.log('🔓 Auth state lost · re-signing in...');
         ensureSharedAuth();
       }
@@ -920,7 +932,7 @@ function refreshPackages() {
       DEFAULT_PACKAGES.forEach(p => window.Cloud.setDoc('koperasi', p.id, p));
     }
   } else {
-    LOAN_PACKAGES = stored.filter(p => p.active !== false);
+    LOAN_PACKAGES = stored;
   }
   // Derive isHighPayout dynamically (>= 65% payout)
   LOAN_PACKAGES.forEach(p => { p.isHighPayout = p.payout >= 65; });
@@ -1524,6 +1536,12 @@ const DB = {
     this.set(this.K.users, users);
     // Mirror to Firestore
     if (window.Cloud?.connected) window.Cloud.setDoc('users', id, users[idx]);
+    // Mirror role/status changes to auth_map (used by Firestore Security Rules)
+    if (users[idx].auth_uid && (('role' in updates) || ('inactive' in updates) || ('locked' in updates) || ('branch_id' in updates))) {
+      try {
+        if (typeof PERUSER_AUTH !== 'undefined') PERUSER_AUTH.syncAuthMap(users[idx]).catch(() => {});
+      } catch (_) {}
+    }
     return users[idx];
   },
   
@@ -1911,17 +1929,15 @@ cases[idx] = { ...before, ...updates };
     refreshPackages();
     return list[idx];
   },
-deleteKoperasi(id) {
-    const list = this.koperasi();
-    const idx = list.findIndex(p => p.id === id);
-    if (idx === -1) return;
-    list[idx].active = false;
+  deleteKoperasi(id) {
+    const list = this.koperasi().filter(p => p.id !== id);
     this.set(this.K.koperasi, list);
-    if (window.Cloud) {
-      window.Cloud.setDoc('koperasi', id, list[idx]);
+    if (window.Cloud?.connected) {
+      window._koperasiWritePending = true;
+      window.Cloud.deleteDoc('koperasi', id).then(() => {
+        window._koperasiWritePending = false;
+      });
     }
-    refreshPackages();
-  },
     refreshPackages();
   },
   
@@ -2237,9 +2253,132 @@ const Hash = {
   }
 };
 
+// ==================== PER-USER FIREBASE AUTH ====================
+// Each staff gets their own Firebase Auth account ({loginId}@awara.local).
+// Accounts are auto-created (lazy migration) on first successful login —
+// zero manual management in Firebase Console, even with 50+ staff.
+const PERUSER_AUTH = {
+  get enabled() { return window.PERUSER_FLAGS?.enabled !== false; },
+  get legacyFallback() { return window.PERUSER_FLAGS?.legacyFallback !== false; },
+  domain: '@awara.local',
+  
+  email(loginId) {
+    return String(loginId).toLowerCase().replace(/[^a-z0-9]/g, '') + this.domain;
+  },
+  
+  // Create a Firebase Auth account WITHOUT disturbing the current session
+  // (uses a secondary app instance — well-known Firebase pattern)
+  async provision(loginId, password) {
+    try {
+      const appName = 'Provision';
+      const app = firebase.apps.find(a => a.name === appName) || firebase.initializeApp(firebase.app().options, appName);
+      const cred = await app.auth().createUserWithEmailAndPassword(this.email(loginId), password);
+      const uid = cred.user.uid;
+      await app.auth().signOut().catch(() => {});
+      return { ok: true, uid };
+    } catch (e) {
+      return { ok: false, code: e.code || '', message: e.message || '' };
+    }
+  },
+  
+  // Sync role/status map used by Firestore Security Rules (server-side enforcement)
+  async syncAuthMap(user) {
+    if (!user?.auth_uid || !window.Cloud?.connected) return;
+    return window.Cloud.setDoc('auth_map', user.auth_uid, {
+      user_id: user.id,
+      role: user.role,
+      branch_id: user.branch_id || null,
+      inactive: !!user.inactive,
+      locked: !!user.locked,
+      updated_at: Date.now()
+    });
+  },
+  
+  // Admin resets another (already-migrated) user's password via Cloud Function
+  async adminReset(targetUser, newPassword) {
+    try {
+      const cu = firebase.auth().currentUser;
+      if (!cu || !targetUser?.auth_uid) return { ok: false, error: 'no-session-or-uid' };
+      const token = await cu.getIdToken();
+      const projectId = firebase.app().options.projectId;
+      const res = await fetch(`https://us-central1-${projectId}.cloudfunctions.net/adminResetPassword`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ data: { uid: targetUser.auth_uid, newPassword } })
+      });
+      const j = await res.json().catch(() => null);
+      if (j?.result?.ok) return { ok: true };
+      return { ok: false, error: j?.error?.message || ('HTTP ' + res.status) };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+};
+
 const Auth = {
   async login(nameId, password) {
-    const user = DB.users().find(u => u.id === nameId.toLowerCase() || u.name.toLowerCase() === nameId.toLowerCase());
+    let user = DB.users().find(u => u.id === nameId.toLowerCase() || u.name.toLowerCase() === nameId.toLowerCase());
+    
+    // ════════ PER-USER AUTH PATH ════════
+    if (PERUSER_AUTH.enabled) {
+      try {
+        await firebase.auth().signInWithEmailAndPassword(PERUSER_AUTH.email(user?.id || nameId), password);
+        
+        // Signed in as the real user ✓ — fresh device may have empty local cache
+        if (!user && window.Cloud?.getAll) {
+          try {
+            const list = await window.Cloud.getAll('users');
+            if (list?.length) {
+              DB.set(DB.K.users, list);
+              user = list.find(u => u.id === nameId.toLowerCase() || (u.name || '').toLowerCase() === nameId.toLowerCase());
+            }
+          } catch (_) {}
+        }
+        if (!user) {
+          await firebase.auth().signOut().catch(() => {});
+          return { ok: false, error: 'Rekod staff tidak dijumpai · hubungi Boss' };
+        }
+        if (user.inactive) {
+          await firebase.auth().signOut().catch(() => {});
+          return { ok: false, error: 'Akaun ini telah dinyahaktifkan. Sila hubungi Manager atau Boss.' };
+        }
+        if (user.locked) {
+          await firebase.auth().signOut().catch(() => {});
+          const manager = DB.users().find(u => ['admin', 'manager', 'hq'].includes(u.role) && (u.branch_id === user.branch_id || u.role === 'admin' || u.role === 'hq'));
+          return { ok: false, locked: true, error: `Akaun dikunci. Sila hubungi ${manager ? manager.name : 'Manager / Boss'} untuk buka semula.` };
+        }
+        
+        // Record auth UID + sync role map for security rules
+        const uid = firebase.auth().currentUser?.uid;
+        if (uid && user.auth_uid !== uid) {
+          DB.updateUser(user.id, { auth_uid: uid });
+          user = DB.user(user.id);
+        }
+        PERUSER_AUTH.syncAuthMap(user).catch(() => {});
+        
+        DB.resetLoginAttempts(user.id);
+        DB.setSession(user.id);
+        const weak = (password === '1234' || password.length < 6);
+        if (weak && !user.must_change_pw) DB.updateUser(user.id, { must_change_pw: true });
+        return { ok: true, user };
+        
+      } catch (e) {
+        if (e.code === 'auth/too-many-requests') {
+          return { ok: false, error: 'Terlalu banyak cubaan gagal. Tunggu beberapa minit, atau hubungi Manager.' };
+        }
+        if (e.code === 'auth/network-request-failed') {
+          return { ok: false, error: 'Tiada sambungan internet · cuba lagi' };
+        }
+        // Credential error → either account not created yet, or wrong password.
+        // If legacy fallback active, verify against app-level hash (lazy migration).
+        if (!PERUSER_AUTH.legacyFallback) {
+          return { ok: false, error: 'Password salah atau akaun belum didaftarkan · hubungi Boss/Manager' };
+        }
+        // ↓ falls through to legacy path below
+      }
+    }
+    
+    // ════════ LEGACY PATH (transition period · auto-migrates accounts) ════════
     if (!user) return { ok: false, error: 'Name ID tidak dijumpai' };
     
     // Check if account is inactive (deactivated by admin)
@@ -2250,18 +2389,13 @@ const Auth = {
     // GLOBAL lockout check (synced via Firestore — single source of truth)
     if (user.locked) {
       const manager = DB.users().find(u => ['admin', 'manager', 'hq'].includes(u.role) && (u.branch_id === user.branch_id || u.role === 'admin' || u.role === 'hq'));
-      // Also clear local stale lockout (in case staff's localStorage still has it)
       const all = DB.get(DB.K.loginAttempts, {});
       if (all[user.id]) {
-        // Keep count but don't lock — let global flag drive
         all[user.id].lockedAt = null;
         DB.set(DB.K.loginAttempts, all);
       }
       return { ok: false, locked: true, error: `Akaun dikunci selepas 3 cubaan gagal. Sila hubungi ${manager ? manager.name : 'Manager / Boss'} untuk buka semula.` };
     }
-    
-    // No legacy local check — user.locked is single source of truth (cleared when Boss unlocks via Firestore sync)
-    // This ensures unlock propagates correctly across all devices
     
     // Password verification — supports plaintext, legacy unsalted hash, and salted "salt$hash".
     const stored = user.password;
@@ -2286,6 +2420,30 @@ const Auth = {
       return { ok: false, error: `Password salah · ${remaining} cubaan lagi sebelum akaun dikunci` };
     }
     
+    // ── LAZY MIGRATION: app password correct → silently create personal Firebase account ──
+    if (PERUSER_AUTH.enabled && !user.auth_uid) {
+      if (password.length >= 6) {
+        const prov = await PERUSER_AUTH.provision(user.id, password);
+        if (prov.ok) {
+          DB.updateUser(user.id, { auth_uid: prov.uid });
+          user = DB.user(user.id);
+          PERUSER_AUTH.syncAuthMap(user).catch(() => {});
+          // Switch this session to the personal account (best effort)
+          try { await firebase.auth().signInWithEmailAndPassword(PERUSER_AUTH.email(user.id), password); } catch (_) {}
+          console.log('🔁 Auto-migrated to per-user auth:', user.id);
+        } else if (prov.code === 'auth/email-already-in-use') {
+          console.warn('⚠ Auth account exists but password out-of-sync for', user.id, '— reset via Cloud Function or Firebase Console');
+        } else if (prov.code === 'auth/operation-not-allowed') {
+          console.warn('⚠ Enable Email/Password sign-in method in Firebase Console → Authentication');
+        } else {
+          console.warn('Auth provision failed:', prov.code);
+        }
+      } else {
+        // Firebase needs ≥6 chars — force password change; migration happens on next login
+        if (!user.must_change_pw) DB.updateUser(user.id, { must_change_pw: true });
+      }
+    }
+    
     // Success - reset attempts
     DB.resetLoginAttempts(user.id);
     DB.setSession(user.id);
@@ -2294,9 +2452,14 @@ const Auth = {
     if (weak && !user.must_change_pw) DB.updateUser(user.id, { must_change_pw: true });
     return { ok: true, user };
   },
-  logout() { DB.clearSession(); },
+  logout() {
+    DB.clearSession();
+    // End the Firebase session too (legacy mode auto re-signs the shared account;
+    // strict mode returns cleanly to the login screen)
+    try { firebase.auth().signOut(); } catch (_) {}
+  },
 
-  // Change a user's password (validates strength, stores salted)
+  // Change a user's password (validates strength, stores salted, updates Firebase Auth)
   async changePassword(userId, newPassword) {
     if (!newPassword || newPassword.length < 6) {
       return { ok: false, error: 'Password baru mesti sekurang-kurangnya 6 aksara' };
@@ -2304,6 +2467,43 @@ const Auth = {
     if (newPassword === '1234') {
       return { ok: false, error: 'Password terlalu mudah · sila pilih yang lain' };
     }
+    
+    const targetUser = DB.user(userId);
+    
+    // ── Sync to Firebase Auth ──
+    if (PERUSER_AUTH.enabled && targetUser) {
+      const cu = firebase.auth().currentUser;
+      const isSelf = cu && cu.email === PERUSER_AUTH.email(userId);
+      
+      if (isSelf) {
+        // Self-change: direct update on own Firebase account
+        try {
+          await cu.updatePassword(newPassword);
+        } catch (e) {
+          if (e.code === 'auth/requires-recent-login') {
+            return { ok: false, error: 'Sesi terlalu lama · sila logout, login semula, kemudian tukar password' };
+          }
+          console.warn('Firebase password update failed:', e.code);
+        }
+      } else if (!targetUser.auth_uid) {
+        // Not yet migrated: create the account with the NEW password
+        const prov = await PERUSER_AUTH.provision(targetUser.id, newPassword);
+        if (prov.ok) {
+          DB.updateUser(targetUser.id, { auth_uid: prov.uid });
+          PERUSER_AUTH.syncAuthMap(DB.user(targetUser.id)).catch(() => {});
+        } else if (prov.code !== 'auth/email-already-in-use') {
+          console.warn('Auth provision on password change failed:', prov.code);
+        }
+      } else {
+        // Admin resetting an already-migrated user → needs the Cloud Function
+        const r = await PERUSER_AUTH.adminReset(targetUser, newPassword);
+        if (!r.ok) {
+          console.warn('adminResetPassword failed:', r.error);
+          return { ok: false, error: 'Reset perlu Cloud Function "adminResetPassword" (lihat deploy guide) · atau reset manual di Firebase Console → Authentication' };
+        }
+      }
+    }
+    
     const salted = await Hash.makeSalted(newPassword);
     DB.updateUser(userId, { password: salted, must_change_pw: false });
     return { ok: true };
@@ -3528,6 +3728,7 @@ this.bindCommonEvents();
       }
       err.classList.remove('show');
       this.state.currentScreen = this.defaultScreen(result.user);
+      setTimeout(() => this.checkFollowUpReminders(), 2000);
       
       // Load notifications from Firestore for this user after login
       if (window.Cloud?.connected) {
@@ -4817,6 +5018,32 @@ ${stage2Done && canProcessStage2 ? (
     // hq sees all
     
     return cases.sort((a, b) => (a.follow_up_date || '').localeCompare(b.follow_up_date || ''));
+  },
+  
+  // Bell notification when follow-ups are due · fires max ONCE per user per day
+  checkFollowUpReminders() {
+    try {
+      const user = Auth.current();
+      if (!user) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const flagKey = `awara_fu_reminded_${user.id}_${today}`;
+      if (localStorage.getItem(flagKey)) return;
+      localStorage.setItem(flagKey, '1');  // set first — never spam even if notif fails
+      
+      const due = this.getFollowUpsDue(user.id).filter(c => 
+        !['disbursed', 'rejected', 'unqualified'].includes(c.status)
+      );
+      if (due.length === 0) return;
+      
+      const overdue = due.filter(c => c.follow_up_date < today).length;
+      DB.addNotification(user.id, {
+        type: 'follow_up_due',
+        title: `📌 ${due.length} Follow-Up Due`,
+        message: `${due.length} customer perlu follow-up hari ini${overdue ? ` · ${overdue} sudah OVERDUE` : ''}. Tekan 📌 icon di atas untuk senarai.`,
+        actor_name: 'System',
+        case_id: due.length === 1 ? due[0].id : null
+      }).catch(() => {});
+    } catch (e) { console.warn('FU reminder check failed:', e); }
   },
   
   openFollowUpsList() {
@@ -7907,6 +8134,27 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     
     DB.updateUser(userId, updates);  // updateUser already syncs to Cloud
     
+    // Sync new password to Firebase Auth (provision if new, Cloud Function if migrated)
+    if (pass && typeof PERUSER_AUTH !== 'undefined' && PERUSER_AUTH.enabled) {
+      if (pass.length >= 6) {
+        const tu = DB.user(userId);
+        if (!tu?.auth_uid) {
+          const prov = await PERUSER_AUTH.provision(userId, pass);
+          if (prov.ok) {
+            DB.updateUser(userId, { auth_uid: prov.uid });
+            PERUSER_AUTH.syncAuthMap(DB.user(userId)).catch(() => {});
+          } else if (prov.code === 'auth/email-already-in-use') {
+            toast('⚠ Firebase account wujud tapi password lain · deploy Cloud Function atau reset di Firebase Console');
+          }
+        } else {
+          const r = await PERUSER_AUTH.adminReset(tu, pass);
+          if (!r.ok) toast('⚠ Password app dah tukar, tapi Firebase belum sync · perlu Cloud Function (lihat guide)');
+        }
+      } else {
+        toast('⚠ Password <6 aksara · Firebase account akan sync bila staff tukar password sendiri');
+      }
+    }
+    
     // Handle case ownership changes based on role transition
     let extraMsg = '';
     if (isPromotion) {
@@ -8157,6 +8405,21 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
       if (!saved) {
         toast('Storage error · cuba lagi');
         return;
+      }
+      
+      // Auto-provision personal Firebase Auth account (per-user security)
+      if (typeof PERUSER_AUTH !== 'undefined' && PERUSER_AUTH.enabled) {
+        if (pass.length >= 6) {
+          const prov = await PERUSER_AUTH.provision(id, pass);
+          if (prov.ok) {
+            DB.updateUser(id, { auth_uid: prov.uid });
+            PERUSER_AUTH.syncAuthMap(DB.user(id)).catch(() => {});
+          } else {
+            console.warn('Auth provision failed (will lazy-create on first login):', prov.code);
+          }
+        }
+        // pass < 6 chars (e.g. default '1234'): Firebase requires ≥6.
+        // Account auto-creates when staff logs in & changes to a proper password.
       }
       
       hideModal();
@@ -8899,21 +9162,21 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
   renderAdminKoperasi(user) {
     const packages = DB.koperasi();
     return this.topBar(user, 'Koperasi Packages', 'Manage loan products') + `
-<div class="section-header">
-        <div class="section-title">${packages.filter(p => p.active !== false).length} Active · ${packages.filter(p => p.active === false).length} Inactive</div>
+      <div class="section-header">
+        <div class="section-title">${packages.length} Active Packages</div>
         <a class="section-action" onclick="App.openAddKoperasi()">+ Add Koperasi</a>
       </div>
       
       <div class="info-banner info" style="margin: 0 20px 14px;">
-        <strong>Manage your koperasi list here.</strong> Add new koperasi, edit rates, or deactivate old ones. Updates auto-sync to all users via cloud.
+        <strong>Manage your koperasi list here.</strong> Add new koperasi, edit rates, or remove old ones. Updates auto-sync to all users via cloud.
       </div>
       
       <div style="padding: 0 20px;">
         ${packages.map(p => `
-          <div class="case-card" style="margin-bottom: 8px; ${p.active === false ? 'opacity: 0.5;' : ''}">
+          <div class="case-card" style="margin-bottom: 8px;">
             <div class="case-card-top">
               <div style="flex: 1;">
-                <div class="case-customer">${p.name} ${p.active === false ? '<span style="font-size: 10px; background: var(--cream-3); color: var(--ink-3); padding: 2px 7px; border-radius: 8px; font-weight: 700; margin-left: 4px;">INACTIVE</span>' : ''}</div>
+                <div class="case-customer">${p.name}</div>
                 <div style="font-size: 12px; color: var(--ink-3); margin-top: 4px;">
                   Rate: <strong style="color: var(--primary);">${p.rate}%</strong> · 
                   Payout: <strong style="color: ${p.payout >= 70 ? 'var(--success)' : 'var(--ink-2)'};">${p.payout}%</strong> · 
@@ -8931,16 +9194,15 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
                 ${p.remarks ? `<div style="font-size: 11px; color: var(--ink-3); margin-top: 4px; font-style: italic;">"${p.remarks}"</div>` : ''}
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                ${p.active !== false ? `<button onclick="App.openEditKoperasi('${p.id}')" style="background: var(--cream); color: var(--ink-2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 11px; cursor: pointer;">Edit</button>` : ''}
-                ${p.active !== false 
-                  ? `<button onclick="App.confirmDeleteKoperasi('${p.id}')" style="background: var(--cream); color: var(--danger); border: 1px solid rgba(184, 66, 58, 0.3); padding: 6px 12px; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 11px; cursor: pointer;">Deactivate</button>`
-                  : `<button onclick="App.reactivateKoperasi('${p.id}')" style="background: var(--cream); color: var(--success); border: 1px solid rgba(45, 122, 80, 0.3); padding: 6px 12px; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 11px; cursor: pointer;">Reactivate</button>`
-                }
+                <button onclick="App.openEditKoperasi('${p.id}')" style="background: var(--cream); color: var(--ink-2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 11px; cursor: pointer;">Edit</button>
+                <button onclick="App.confirmDeleteKoperasi('${p.id}')" style="background: var(--cream); color: var(--danger); border: 1px solid rgba(184, 66, 58, 0.3); padding: 6px 12px; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 11px; cursor: pointer;">Delete</button>
               </div>
             </div>
           </div>
         `).join('')}
       </div>
+    `;
+  },
   
   openAddKoperasi() {
     showModal(`
@@ -9084,25 +9346,13 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     }
   },
   
-confirmDeleteKoperasi(id) {
+  confirmDeleteKoperasi(id) {
     if (!Permissions.canManageKoperasi(Auth.current())) { toast('No permission'); return; }
     const p = DB.koperasiById(id);
     if (!p) return;
-    if (!confirm(`Deactivate "${p.name}"?\n\nPackage akan disembunyikan dari staff. Existing cases tidak terjejas. Boleh reactivate semula.`)) return;
+    if (!confirm(`Delete "${p.name}" permanently?\n\nExisting cases using this koperasi will keep their data but can't be edited.`)) return;
     DB.deleteKoperasi(id);
-    toast('Koperasi "' + p.name + '" deactivated');
-    this.render();
-  },
-  reactivateKoperasi(id) {
-    if (!Permissions.canManageKoperasi(Auth.current())) { toast('No permission'); return; }
-    const list = DB.koperasi();
-    const idx = list.findIndex(p => p.id === id);
-    if (idx === -1) return;
-    list[idx].active = true;
-    DB.set(DB.K.koperasi, list);
-    if (window.Cloud) window.Cloud.setDoc('koperasi', id, list[idx]);
-    refreshPackages();
-    toast('Koperasi "' + list[idx].name + '" reactivated');
+    toast('Koperasi "' + p.name + '" deleted');
     this.render();
   },
   
@@ -12099,6 +12349,11 @@ setTimeout(() => {
   if (window.Cloud && window.Cloud.error) showCloudDiagnostic();  // error captured
   else if (typeof window.Cloud === 'undefined') showCloudDiagnostic();  // SDK didn't load at all
 }, 500);
+
+// Follow-up reminder check on boot (existing session) · waits for Firestore sync first
+setTimeout(() => {
+  try { if (Auth.current()) App.checkFollowUpReminders(); } catch (_) {}
+}, 6000);
 
 // Cloud status indicator polling (10s interval - saves mobile battery)
 setInterval(() => {
