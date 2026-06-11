@@ -1592,7 +1592,8 @@ const DB = {
     
     // AUTO duplicate detection: ANY case dengan same IC + branch → flag duplicate
     // Original = earliest case by date_payslip (or id if no date)
-    const existing = cases.filter(c => c.ic === data.ic && c.branch_id === data.branch_id);
+    const resolvedBranchId = data.branch_id || this.user(data.source_cs_id)?.branch_id || null;
+const existing = cases.filter(c => c.ic === data.ic && c.branch_id === resolvedBranchId);
     const sortedExisting = existing.slice().sort((a, b) => 
       (a.date_payslip || '9999').localeCompare(b.date_payslip || '9999')
     );
@@ -1602,7 +1603,7 @@ const DB = {
     const newCase = { 
       id: 'c' + Date.now(), 
       ...data,
-      branch_id: data.branch_id || this.user(data.source_cs_id)?.branch_id || null,
+      branch_id: resolvedBranchId,
       is_duplicate: isDuplicate,
 original_keyer: isDuplicate ? (originalCase?.source_cs_id || null) : null,
 duplicate_of:   isDuplicate ? (originalCase?.id || null) : null,
