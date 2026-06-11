@@ -5972,10 +5972,13 @@ ${stage2Done && canProcessStage2 ? (
           <div class="value"><span class="currency">RM</span>${fmtK(stats.kfiAmount)}</div>
           <div class="sub">actual disburse</div>
         </div>
-        ${Permissions.canViewProfit(user) ? `
-          <div class="kpi-card" style="background: linear-gradient(135deg, #16A34A 0%, #22C55E 100%); color: white;">
+${Permissions.canViewProfit(user) ? `
+          <div class="kpi-card" style="background: linear-gradient(135deg, #16A34A 0%, #22C55E 100%); color: white; position: relative;">
+            <div style="position: absolute; top: 8px; right: 8px; cursor: pointer; opacity: 0.85;" onclick="App.toggleProfitVisibility()" title="Show/Hide Profit">
+              <svg id="profit-eye-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
             <div class="label" style="color: rgba(255,255,255,0.85);">💼 Company Profit</div>
-            <div class="value" style="color: white;"><span class="currency" style="color: rgba(255,255,255,0.85);">RM</span>${fmtK(companyProfit)}</div>
+            <div class="value" id="profit-value-display" style="color: white;"><span class="currency" style="color: rgba(255,255,255,0.85);">RM</span>${fmtK(companyProfit)}</div>
             <div class="sub" style="color: rgba(255,255,255,0.85);">commission earned${branchId ? ' · ' + (DB.branch(branchId)?.name || '') : ''}</div>
           </div>
         ` : ''}
@@ -9379,7 +9382,23 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     if (window.Cloud) window.Cloud.setDoc('koperasi', id, list[idx]);
     refreshPackages();
     toast('Koperasi "' + list[idx].name + '" reactivated');
-    this.render();
+this.render();
+  },
+
+  toggleProfitVisibility() {
+    const el = document.getElementById('profit-value-display');
+    const icon = document.getElementById('profit-eye-icon');
+    if (!el) return;
+    const hidden = el.dataset.hidden === '1';
+    if (hidden) {
+      el.dataset.hidden = '0';
+      el.style.filter = '';
+      icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    } else {
+      el.dataset.hidden = '1';
+      el.style.filter = 'blur(6px)';
+      icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    }
   },
   
   // ============ ADMIN: ANNOUNCEMENTS ============
