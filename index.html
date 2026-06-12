@@ -965,6 +965,61 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 
 /* ── Step pulse (stepper current + podium gold) ── */
 @keyframes stepPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.09); } }
+
+/* ═══ ✨ WOW PHASE 2 · post-login polish ═══ */
+
+/* Top bar · subtle gradient + gold hairline */
+.top-bar { background: linear-gradient(180deg, #FDFBF6 0%, var(--cream) 100%); border-bottom: 1px solid var(--border-2); box-shadow: 0 1px 0 rgba(245,197,24,0.18), 0 6px 18px rgba(15,81,50,0.04); }
+.avatar { position: relative; box-shadow: 0 0 0 2px rgba(245,197,24,0.35), 0 4px 12px rgba(15,81,50,0.18); transition: transform 0.18s; }
+.avatar:active { transform: scale(0.92); }
+.greeting .name em { background: linear-gradient(100deg, var(--primary), #2E8B57 60%, var(--primary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* Month pill · live gold accent */
+.month-pill { background: linear-gradient(120deg, var(--cream-2), #FBF6E8); border: 1px solid rgba(212,165,14,0.25); box-shadow: 0 2px 8px rgba(212,165,14,0.08); }
+.month-pill .dot { box-shadow: 0 0 0 0 rgba(46,125,50,0.5); animation: badgePulse 2.4s ease-in-out infinite; }
+
+/* Bottom nav · floating glass pill */
+.bottom-nav { left: 50%; transform: translateX(-50%); bottom: 10px; width: calc(100% - 24px); max-width: 456px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.7); background: rgba(250,247,240,0.82); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); box-shadow: 0 12px 36px rgba(8,64,37,0.18), inset 0 1px 0 rgba(255,255,255,0.85); padding: 8px 10px 10px; }
+.nav-item .icon { transition: all 0.22s cubic-bezier(0.34,1.5,0.64,1); }
+.nav-item.active .icon { transform: translateY(-2px) scale(1.08); box-shadow: 0 6px 16px rgba(15,81,50,0.3); }
+.nav-item.active { position: relative; }
+.nav-item.active::after { content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent-deep); box-shadow: 0 0 8px rgba(212,165,14,0.8); }
+.nav-item:active .icon { transform: scale(0.88); }
+
+/* FAB · gradient + breathing glow ring */
+.fab { background: linear-gradient(145deg, #FFD93D, #E8B40D); box-shadow: 0 8px 24px rgba(245,197,24,0.5), 0 0 0 0 rgba(245,197,24,0.35); animation: fabBreathe 3s ease-in-out infinite; }
+.fab:active { transform: scale(0.9) rotate(90deg); }
+@keyframes fabBreathe { 0%,100% { box-shadow: 0 8px 24px rgba(245,197,24,0.5), 0 0 0 0 rgba(245,197,24,0.3); } 50% { box-shadow: 0 10px 30px rgba(245,197,24,0.6), 0 0 0 9px rgba(245,197,24,0); } }
+
+/* Toast · dark glass + gold edge + spring */
+.toast { background: rgba(10,52,33,0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(245,197,24,0.35); border-left: 3px solid var(--accent); box-shadow: 0 14px 40px rgba(0,0,0,0.4); animation: toastSpring 0.4s cubic-bezier(0.34,1.5,0.64,1); }
+@keyframes toastSpring { from { opacity: 0; transform: translateX(-50%) translateY(18px) scale(0.92); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+
+/* Targets card · animated gold corner glow */
+.targets-card::after { content: ''; position: absolute; top: -40px; right: -40px; width: 130px; height: 130px; background: radial-gradient(circle, rgba(245,197,24,0.25) 0%, transparent 65%); animation: orbFloat 9s ease-in-out infinite; pointer-events: none; }
+
+/* Section titles · gold accent tick */
+.section-title { position: relative; padding-left: 12px; }
+.section-title::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 4px; height: 70%; border-radius: 3px; background: linear-gradient(180deg, var(--accent), var(--accent-deep)); }
+
+/* iOS mask prefix for grid glow */
+.login-grid-glow { -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 28%, black 30%, transparent 75%); }
+
+/* ── 📣 Live Feed ticker ── */
+.live-feed { margin: 12px 20px 0; display: flex; align-items: center; gap: 8px; background: linear-gradient(120deg, #FFF9E8, #FDF3D3); border: 1px solid rgba(212,165,14,0.3); border-radius: 14px; padding: 8px 10px; overflow: hidden; animation: cardRise 0.5s both; }
+.feed-live-tag { flex-shrink: 0; background: #E53E3E; color: white; font-size: 8.5px; font-weight: 800; letter-spacing: 0.1em; padding: 3px 7px; border-radius: 7px; animation: badgePulse 2s ease-in-out infinite; }
+.feed-viewport { overflow: hidden; flex: 1; }
+.feed-track { display: inline-flex; align-items: center; gap: 14px; white-space: nowrap; animation: feedScroll 28s linear infinite; will-change: transform; }
+.feed-item { font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+.feed-item b { color: var(--primary); font-weight: 800; }
+.feed-dot { color: rgba(212,165,14,0.6); font-size: 9px; }
+@keyframes feedScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.live-feed:active .feed-track { animation-play-state: paused; }
+
+/* ── Splash overlays ── */
+@keyframes splashFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes splashPop { from { opacity: 0; transform: translateY(30px) scale(0.88); } to { opacity: 1; transform: none; } }
+@keyframes crownDrop { 0% { opacity: 0; transform: translateY(-60px) rotate(-18deg) scale(0.6); } 60% { transform: translateY(6px) rotate(4deg) scale(1.06); } 100% { opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
@@ -3853,6 +3908,7 @@ this.bindCommonEvents();
       }
       this.state.currentScreen = this.defaultScreen(result.user);
       setTimeout(() => this.checkFollowUpReminders(), 2000);
+      setTimeout(() => this.dailyEngagement(), 900);
       
       // Load notifications from Firestore for this user after login
       if (window.Cloud?.connected) {
@@ -3984,7 +4040,35 @@ this.bindCommonEvents();
     
     return this.topBar(user) + this.monthPill() + 
       this.renderAnnouncementBanner() + 
-      this.renderPerformanceBanner(user) + `
+      this.renderPerformanceBanner(user) + 
+      this.renderLiveFeed(user) + `
+      ${(() => {
+        const com = Logic.csCommission(user.id);
+        const leaderCom = user.role === 'solo' ? Logic.leaderCommission(user.id) : null;
+        const total = (com?.total || 0) + (leaderCom?.total || 0);
+        const streak = this.computeStreak(user.id);
+        const badges = this.getBadges(user.id);
+        return `
+          <div style="margin: 14px 20px 0; padding: 16px 18px; background: linear-gradient(135deg, #0E4D2F 0%, #1B6B43 55%, #2E8B57 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 14px 36px rgba(8,64,37,0.32); animation: cardRise 0.5s 0.05s both;">
+            <div style="position:absolute;top:-46px;right:-46px;width:150px;height:150px;background:radial-gradient(circle, rgba(245,197,24,0.28) 0%, transparent 65%);animation:orbFloat 8s ease-in-out infinite;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:10px;">
+              <div style="min-width:0;">
+                <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.16em;font-weight:800;">💰 Komisen Bulan Ini</div>
+                <div style="font-family:'Archivo Black',sans-serif;font-size:30px;color:white;margin-top:4px;"><span style="font-size:15px;color:var(--accent);">RM</span> <span class="countup">${fmt(Math.round(total))}</span></div>
+                <div style="font-size:10.5px;color:rgba(250,247,240,0.7);font-weight:600;margin-top:2px;">Teruskan! Setiap case naikkan angka ni 📈</div>
+              </div>
+              ${streak > 0 ? `<div style="text-align:center;background:rgba(245,197,24,0.16);border:1px solid rgba(245,197,24,0.35);border-radius:14px;padding:8px 12px;flex-shrink:0;">
+                <div style="font-size:20px;animation:stepPulse 2s ease-in-out infinite;">🔥</div>
+                <div style="font-size:16px;font-weight:800;color:var(--accent);line-height:1;">${streak}</div>
+                <div style="font-size:8px;color:rgba(250,247,240,0.75);font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">hari streak</div>
+              </div>` : ''}
+            </div>
+            ${badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;position:relative;">
+              ${badges.map(b => `<span title="${b.l}" style="background:rgba(255,255,255,0.12);border:1px solid rgba(245,197,24,0.3);border-radius:12px;padding:4px 10px;font-size:11px;font-weight:800;color:var(--accent);">${b.i} ${b.l.split(' · ')[0]}</span>`).join('')}
+            </div>` : ''}
+          </div>
+        `;
+      })()}
       <div class="kpi-grid">
         <div class="kpi-card featured">
           <div class="label">Payslip Collected · This Month</div>
@@ -5887,7 +5971,34 @@ ${stage2Done && canProcessStage2 ? (
     
     return this.topBar(user) + this.monthPill() + 
       this.renderAnnouncementBanner() + 
-      this.renderPerformanceBanner(user) + `
+      this.renderPerformanceBanner(user) + 
+      this.renderLiveFeed(user) + `
+      ${(() => {
+        const lcom = Logic.leaderCommission(user.id);
+        const total = lcom?.total || 0;
+        const streak = this.computeStreak(user.id);
+        const badges = this.getBadges(user.id);
+        return `
+          <div style="margin: 14px 20px 0; padding: 16px 18px; background: linear-gradient(135deg, #0E4D2F 0%, #1B6B43 55%, #2E8B57 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 14px 36px rgba(8,64,37,0.32); animation: cardRise 0.5s 0.05s both;">
+            <div style="position:absolute;top:-46px;right:-46px;width:150px;height:150px;background:radial-gradient(circle, rgba(245,197,24,0.28) 0%, transparent 65%);animation:orbFloat 8s ease-in-out infinite;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:10px;">
+              <div style="min-width:0;">
+                <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.16em;font-weight:800;">💰 Komisen Team Bulan Ini</div>
+                <div style="font-family:'Archivo Black',sans-serif;font-size:30px;color:white;margin-top:4px;"><span style="font-size:15px;color:var(--accent);">RM</span> <span class="countup">${fmt(Math.round(total))}</span></div>
+                <div style="font-size:10.5px;color:rgba(250,247,240,0.7);font-weight:600;margin-top:2px;">Team push, leader pun naik 📈</div>
+              </div>
+              ${streak > 0 ? `<div style="text-align:center;background:rgba(245,197,24,0.16);border:1px solid rgba(245,197,24,0.35);border-radius:14px;padding:8px 12px;flex-shrink:0;">
+                <div style="font-size:20px;animation:stepPulse 2s ease-in-out infinite;">🔥</div>
+                <div style="font-size:16px;font-weight:800;color:var(--accent);line-height:1;">${streak}</div>
+                <div style="font-size:8px;color:rgba(250,247,240,0.75);font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">hari streak</div>
+              </div>` : ''}
+            </div>
+            ${badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;position:relative;">
+              ${badges.map(b => `<span title="${b.l}" style="background:rgba(255,255,255,0.12);border:1px solid rgba(245,197,24,0.3);border-radius:12px;padding:4px 10px;font-size:11px;font-weight:800;color:var(--accent);">${b.i} ${b.l.split(' · ')[0]}</span>`).join('')}
+            </div>` : ''}
+          </div>
+        `;
+      })()}
       <div class="kpi-grid">
         <div class="kpi-card featured">
           <div class="label">Team KFI · ${user.role === 'solo' ? 'Solo' : 'Total'}</div>
@@ -6219,6 +6330,7 @@ ${Permissions.canViewProfit(user) ? `
         </div>
       </div>
       
+      ${this.renderLiveFeed(user)}
       ${this.renderTrendChart(branchId)}
 
       ${branchBreakdown ? `
@@ -6473,7 +6585,7 @@ ${Permissions.canViewProfit(user) ? `
         <div class="rank-num">${i+1}</div>
         <div style="flex: 1; min-width: 0;">
           <div class="rank-name">${idPrefix}${r.user.name}${r.user.role === 'solo' ? ' <span class="solo-badge">Solo</span>' : ''}${selectedBranch === 'all' && r.branchName ? ` <span style="font-size:10px; font-weight:600; color:var(--ink-3); background:var(--cream-2); padding:2px 6px; border-radius:6px;">${r.branchName}</span>` : ''}</div>
-          <div class="rank-sub" style="margin-bottom: 6px;">${ROLE_LABELS[r.user.role]} · 👆 tap to verify customers</div>
+          <div class="rank-sub" style="margin-bottom: 6px;">${ROLE_LABELS[r.user.role]} · 👆 tap to verify customers ${App.getBadges(r.user.id).map(b => `<span title="${b.l}" style="font-size:12px;">${b.i}</span>`).join('')}</div>
           <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; font-size: 10px; padding-top: 6px; border-top: 1px solid var(--border-2);">
             <div style="text-align: center;">
              <div style="font-weight: 800; color: var(--primary); font-size: 13px;">${r.payslip}</div>
@@ -6488,7 +6600,7 @@ ${Permissions.canViewProfit(user) ? `
               <div class="stat-label" style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; font-weight: 700;">KFI (RM)</div>
             </div>
             <div style="text-align: center;">
-              <div style="font-weight: 800; color: var(--accent-deep); font-size: 13px;">${fmtK(r.com)}</div>
+              <div style="font-weight: 800; color: var(--accent-deep); font-size: 13px;">${r.com == null ? '—' : fmtK(r.com)}</div>
               <div class="stat-label" style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; font-weight: 700;">Com (RM)</div>
             </div>
             <div style="text-align: center;">
@@ -6500,28 +6612,78 @@ ${Permissions.canViewProfit(user) ? `
       </div>
     `;
     
-    return this.topBar(user, 'Rankings', new Date().toLocaleDateString('en-MY', {month: 'long', year: 'numeric'}) + ' · click row to verify customers') + `
+    // ── 📅 WEEKLY MODE · override rows with week-range stats ──
+    const rankPeriod = this.state.rankingPeriod || 'month';
+    let weekLabel = '', wsStr = '';
+    if (rankPeriod === 'week') {
+      const today = new Date();
+      const mon = new Date(today);
+      const dow = mon.getDay() === 0 ? 7 : mon.getDay();
+      mon.setDate(mon.getDate() - dow + 1);
+      wsStr = this.state.rankingWeekStart || mon.toISOString().slice(0, 10);
+      const wsD = new Date(wsStr);
+      const weD = new Date(wsD); weD.setDate(weD.getDate() + 6);
+      const ws = wsStr, we = weD.toISOString().slice(0, 10);
+      weekLabel = wsD.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' }) + ' – ' + weD.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' });
+      const within = d => d && d >= ws && d <= we;
+      
+      // Same rules as monthly: payslip excludes duplicates · KPI by date_submitted
+      // (incl. later rejected/disbursed) · KFI by date_disbursed · unqualified excluded everywhere
+      const weekStats = (list, byLeader) => list.map(u => {
+        const cs = DB.cases().filter(c => (byLeader ? c.leader_id === u.id : c.source_cs_id === u.id) && c.status !== 'unqualified');
+        return {
+          user: u,
+          branchName: DB.branch(u.branch_id)?.name || '',
+          payslip: cs.filter(c => within(c.date_payslip) && !c.is_duplicate).length,
+          kpi: cs.filter(c => within(c.date_submitted)).length,
+          kfi: cs.filter(c => c.status === 'disbursed' && within(c.date_disbursed)).reduce((s, c) => s + (c.disburse_amount || 0), 0),
+          com: null,        // commission is calculated monthly · not shown in week view
+          specialCom: 0
+        };
+      });
+      csRows.length = 0;
+      csRows.push(...weekStats(csUsers, false).sort((a, b) => b.payslip - a.payslip));
+      teamRows.length = 0;
+      teamRows.push(...weekStats(teamLeaders, true).sort((a, b) => b.kfi - a.kfi));
+    }
+    
+    return this.topBar(user, 'Rankings', (rankPeriod === 'week' ? '📅 Week ' + weekLabel : new Date().toLocaleDateString('en-MY', {month: 'long', year: 'numeric'})) + ' · click row to verify customers') + `
       ${canPickBranch ? `
       <div style="padding: 12px 20px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
         <span style="font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em;">Branch:</span>
         <button onclick="App.setRankingBranch('all')" style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; background: ${selectedBranch === 'all' ? 'var(--primary)' : 'var(--cream-2)'}; color: ${selectedBranch === 'all' ? 'var(--cream)' : 'var(--ink)'};">All</button>
         ${branches.map(b => `<button onclick="App.setRankingBranch('${b.id}')" style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; background: ${selectedBranch === b.id ? 'var(--primary)' : 'var(--cream-2)'}; color: ${selectedBranch === b.id ? 'var(--cream)' : 'var(--ink)'};">${b.name}</button>`).join('')}
       </div>` : ''}
-      <div style="padding: 12px 20px; background: var(--cream-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span style="font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em;">📅 Month:</span>
-        <select onchange="App.state.rankingMonth = this.value; App.render();" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; flex: 1; min-width: 160px;">
-          ${availMonths.slice(0, 12).map(m => {
-            const d = new Date(m + '-01');
-            return `<option value="${m}" ${selectedRankMonth === m ? 'selected' : ''}>${d.toLocaleDateString('en-MY', {month: 'long', year: 'numeric'})}</option>`;
-          }).join('')}
-        </select>
-        ${selectedRankMonth !== Logic.currentMonthYM() ? `<button onclick="App.state.rankingMonth = null; App.render();" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--cream); font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;">↻ Current</button>` : ''}
+      <div style="padding: 12px 20px; background: var(--cream-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; background: var(--cream); border: 1px solid var(--border); border-radius: 12px; padding: 3px; gap: 2px;">
+          <button onclick="App.state.rankingPeriod = 'month'; App.render();" style="padding: 6px 16px; border-radius: 9px; border: none; font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.18s; background: ${rankPeriod === 'month' ? 'var(--primary)' : 'transparent'}; color: ${rankPeriod === 'month' ? 'var(--accent)' : 'var(--ink-3)'};">Month</button>
+          <button onclick="App.state.rankingPeriod = 'week'; App.render();" style="padding: 6px 16px; border-radius: 9px; border: none; font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.18s; background: ${rankPeriod === 'week' ? 'var(--primary)' : 'transparent'}; color: ${rankPeriod === 'week' ? 'var(--accent)' : 'var(--ink-3)'};">Week</button>
+        </div>
+        ${rankPeriod === 'week' ? `
+          <input type="date" value="${wsStr}" onchange="
+            const d = new Date(this.value);
+            const dow = d.getDay() === 0 ? 7 : d.getDay();
+            d.setDate(d.getDate() - dow + 1);
+            App.state.rankingWeekStart = d.toISOString().slice(0,10);
+            App.render();
+          " style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-family: inherit; font-size: 12px; font-weight: 700; flex: 1; min-width: 140px;">
+          <span style="font-size: 11px; font-weight: 800; color: var(--accent-deep);">📅 ${weekLabel}</span>
+          ${this.state.rankingWeekStart ? `<button onclick="App.state.rankingWeekStart = null; App.render();" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--cream); font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;">↻ This Week</button>` : ''}
+        ` : `
+          <select onchange="App.state.rankingMonth = this.value; App.render();" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; flex: 1; min-width: 160px;">
+            ${availMonths.slice(0, 12).map(m => {
+              const d = new Date(m + '-01');
+              return `<option value="${m}" ${selectedRankMonth === m ? 'selected' : ''}>${d.toLocaleDateString('en-MY', {month: 'long', year: 'numeric'})}</option>`;
+            }).join('')}
+          </select>
+          ${selectedRankMonth !== Logic.currentMonthYM() ? `<button onclick="App.state.rankingMonth = null; App.render();" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--cream); font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;">↻ Current</button>` : ''}
+        `}
       </div>
       <div class="tabs">
         <button class="tab ${tab === 'cs' ? 'active' : ''}" onclick="App.setTab('adminRank','cs')">CS Ranking</button>
         <button class="tab ${tab === 'team' ? 'active' : ''}" onclick="App.setTab('adminRank','team')">Team Ranking</button>
       </div>
-      <div style="padding: 10px 20px; font-size: 11px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">${tab === 'cs' ? 'Sorted by Payslip count' : 'Sorted by KFI disburse'}</div>
+      <div style="padding: 10px 20px; font-size: 11px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">${rankPeriod === 'week' ? '📅 Week ' + weekLabel + ' · ' : ''}${tab === 'cs' ? 'Sorted by Payslip count' : 'Sorted by KFI disburse'}</div>
       
       ${(() => {
         // 🏆 Top-3 Podium
@@ -7066,6 +7228,7 @@ ${Permissions.canViewProfit(user) ? `
   // 🎉 Gold confetti celebration (disburse moment)
   celebrate(label) {
     try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (_) {}
+    this.chaChing();
     const colors = ['#F5C518', '#FFD93D', '#D4A50E', '#1B6B43', '#FAF7F0'];
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;';
@@ -7091,7 +7254,7 @@ ${Permissions.canViewProfit(user) ? `
   
   // 📈 Count-up animation on KPI values
   animateCountUps() {
-    document.querySelectorAll('.kpi-card .value').forEach(el => {
+    document.querySelectorAll('.kpi-card .value, .countup').forEach(el => {
       if (el.dataset.counted) return;
       el.dataset.counted = '1';
       const node = el.childNodes[el.childNodes.length - 1];
@@ -7125,6 +7288,228 @@ ${Permissions.canViewProfit(user) ? `
     if (h < 12) return '🌅 Selamat Pagi';
     if (h < 19) return '☀️ Selamat Petang';
     return '🌙 Selamat Malam';
+  },
+  
+  // ═══════════ 💎 ENGAGEMENT ENGINE ═══════════
+  
+  // Malaysian IC → date of birth (YYMMDD-PB-####)
+  icToDob(ic) {
+    const d = String(ic || '').replace(/\D/g, '');
+    if (d.length < 6) return null;
+    const yy = +d.slice(0, 2), mm = +d.slice(2, 4), dd = +d.slice(4, 6);
+    if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    const cutoff = new Date().getFullYear() - 2000 - 16;  // working adults
+    const year = yy <= cutoff ? 2000 + yy : 1900 + yy;
+    return `${year}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+  },
+  
+  // 🔥 Consecutive working days with activity (weekends don't break or count)
+  computeStreak(userId) {
+    const filled = new Set(
+      DB.activities().filter(a => a.cs_id === userId && ((a.calls || 0) + (a.whatsapp || 0) + (a.payslip || 0)) > 0).map(a => a.date)
+    );
+    const iso = x => x.toISOString().slice(0, 10);
+    let streak = 0;
+    const d = new Date();
+    if (!filled.has(iso(d))) d.setDate(d.getDate() - 1);  // today not filled yet → start yesterday
+    for (let i = 0; i < 400; i++) {
+      const dow = d.getDay();
+      if (dow === 0 || dow === 6) { d.setDate(d.getDate() - 1); continue; }
+      if (filled.has(iso(d))) { streak++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    return streak;
+  },
+  
+  // 👑 Last full week's payslip champion (Mon–Sun)
+  lastWeekChampion(branchId) {
+    const memoKey = (branchId || 'all') + '_' + new Date().toISOString().slice(0, 10);
+    this._champMemo = this._champMemo || {};
+    if (memoKey in this._champMemo) return this._champMemo[memoKey];
+    const mon = new Date();
+    const dow = mon.getDay() === 0 ? 7 : mon.getDay();
+    mon.setDate(mon.getDate() - dow + 1 - 7);
+    const ws = mon.toISOString().slice(0, 10);
+    const we = new Date(mon); we.setDate(we.getDate() + 6);
+    const weS = we.toISOString().slice(0, 10);
+    const users = DB.users().filter(u => !u.inactive && ['cs', 'solo'].includes(u.role) && (!branchId || u.branch_id === branchId));
+    let best = null;
+    users.forEach(u => {
+      const n = DB.cases().filter(c => c.source_cs_id === u.id && !c.is_duplicate && c.status !== 'unqualified'
+        && c.date_payslip >= ws && c.date_payslip <= weS).length;
+      if (n > 0 && (!best || n > best.count)) best = { user: u, count: n, label: new Date(ws).toLocaleDateString('en-MY', {day:'numeric',month:'short'}) + '–' + we.toLocaleDateString('en-MY', {day:'numeric',month:'short'}) };
+    });
+    this._champMemo[memoKey] = best;
+    return best;
+  },
+  
+  // 🏅 Achievement badges (computed live)
+  getBadges(userId) {
+    const u = DB.user(userId);
+    if (!u) return [];
+    const ym = new Date().toISOString().slice(0, 7);
+    const all = DB.cases().filter(c => c.status !== 'unqualified');
+    const mine = all.filter(c => c.source_cs_id === userId);
+    const badges = [];
+    
+    const monthDisb = all.filter(c => c.branch_id === u.branch_id && c.status === 'disbursed' && (c.date_disbursed || '').startsWith(ym))
+      .sort((a, b) => (a.date_disbursed || '').localeCompare(b.date_disbursed || ''));
+    if (monthDisb.length && monthDisb[0].source_cs_id === userId) badges.push({ i: '🩸', l: 'First Blood · disburse pertama bulan ini' });
+    
+    const dayCount = {};
+    mine.filter(c => (c.date_payslip || '').startsWith(ym) && !c.is_duplicate).forEach(c => { dayCount[c.date_payslip] = (dayCount[c.date_payslip] || 0) + 1; });
+    if (Object.values(dayCount).some(n => n >= 3)) badges.push({ i: '⚡', l: 'Hat-trick · 3 payslip sehari' });
+    
+    if (mine.filter(c => !c.is_duplicate).length >= 100) badges.push({ i: '💯', l: 'Century · 100 payslip lifetime' });
+    
+    const ch = this.lastWeekChampion(u.branch_id);
+    if (ch && ch.user.id === userId) badges.push({ i: '👑', l: 'Champion minggu lepas' });
+    
+    const st = this.computeStreak(userId);
+    if (st >= 30) badges.push({ i: '🔥', l: st + '-day streak!' });
+    else if (st >= 7) badges.push({ i: '🔥', l: st + '-day streak' });
+    
+    return badges;
+  },
+  
+  // 📣 Live team feed (today + yesterday wins)
+  renderLiveFeed(user) {
+    const iso = d => d.toISOString().slice(0, 10);
+    const today = iso(new Date());
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    const yest = iso(y);
+    const scopeAll = Permissions.canViewAllBranches(user);
+    const items = [];
+    DB.cases().filter(c => (scopeAll || c.branch_id === user.branch_id) && c.status !== 'unqualified').forEach(c => {
+      const who = DB.user(c.source_cs_id)?.name?.split(' ')[0] || '?';
+      if (c.status === 'disbursed' && (c.date_disbursed === today || c.date_disbursed === yest)) {
+        items.push({ t: c.date_disbursed + 'z', h: `🎉 <b>${esc(who)}</b> disbursed <b>RM${fmtK(c.disburse_amount || 0)}</b>` });
+      } else if (c.date_submitted === today || c.date_submitted === yest) {
+        items.push({ t: c.date_submitted + 'y', h: `📤 <b>${esc(who)}</b> submit KPI` });
+      } else if (c.date_payslip === today) {
+        items.push({ t: c.date_payslip + 'x', h: `📥 <b>${esc(who)}</b> kumpul payslip` });
+      }
+    });
+    if (items.length === 0) return '';
+    items.sort((a, b) => b.t.localeCompare(a.t));
+    const seg = items.slice(0, 12).map(i => `<span class="feed-item">${i.h}</span>`).join('<span class="feed-dot">✦</span>');
+    return `
+      <div class="live-feed">
+        <span class="feed-live-tag">LIVE</span>
+        <div class="feed-viewport"><div class="feed-track">${seg}<span class="feed-dot">✦</span>${seg}<span class="feed-dot">✦</span></div></div>
+      </div>
+    `;
+  },
+  
+  // 🔊 Sound
+  soundOn() { return localStorage.getItem('awara_sound') !== 'off'; },
+  toggleSound() {
+    localStorage.setItem('awara_sound', this.soundOn() ? 'off' : 'on');
+    toast(this.soundOn() ? '🔊 Sound ON' : '🔇 Sound OFF');
+  },
+  chaChing() {
+    if (!this.soundOn()) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const t = ctx.currentTime;
+      [[1318.5, 0], [1567.98, 0.09], [2093, 0.18]].forEach(([f, off]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + off);
+        g.gain.exponentialRampToValueAtTime(0.18, t + off + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.5);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t + off); o.stop(t + off + 0.55);
+      });
+    } catch (_) {}
+  },
+  
+  // Full-screen splash overlay (tap to dismiss)
+  showSplash(html, dur) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;background:rgba(8,40,25,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:splashFade 0.4s ease;cursor:pointer;padding:24px;';
+    el.innerHTML = `<div style="animation:splashPop 0.55s cubic-bezier(0.34,1.45,0.64,1);max-width:340px;width:100%;">${html}</div>`;
+    el.onclick = () => el.remove();
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.45s'; setTimeout(() => el.remove(), 460); }, dur || 3000);
+  },
+  
+  // 🌅 Daily engagement: birthday > Monday champion > daily card (one per day)
+  dailyEngagement() {
+    try {
+      const user = Auth.current();
+      if (!user) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const key = `awara_engage_${user.id}_${today}`;
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+      
+      // 1 · 🎂 Birthday
+      const dob = this.icToDob(user.staff_ic);
+      if (dob && dob.slice(5) === today.slice(5)) {
+        this.celebrate('🎂 Happy Birthday!');
+        this.showSplash(`
+          <div style="background:linear-gradient(150deg,#B8860B,#DAA520 60%,#F5C518);border-radius:24px;padding:30px 24px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,0.5);">
+            <div style="font-size:62px;animation:stepPulse 1.6s ease-in-out infinite;">🎂</div>
+            <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:white;margin-top:8px;">Selamat Hari Jadi!</div>
+            <div style="font-size:17px;font-weight:800;color:rgba(255,255,255,0.95);margin-top:4px;">${esc(user.name)} 🎉</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:10px;font-weight:600;">Seluruh team AWARA wish you all the best! 🥳</div>
+          </div>
+        `, 5000);
+        return;
+      }
+      
+      // 2 · 👑 Monday champion reveal
+      if (new Date().getDay() === 1) {
+        const ch = this.lastWeekChampion(Permissions.canViewAllBranches(user) ? null : user.branch_id);
+        if (ch) {
+          const isMe = ch.user.id === user.id;
+          if (isMe) this.celebrate('👑 Champion!');
+          this.showSplash(`
+            <div style="background:linear-gradient(160deg,var(--primary),var(--primary-dark));border:1.5px solid rgba(245,197,24,0.4);border-radius:24px;padding:28px 24px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,0.55);">
+              <div style="font-size:54px;animation:crownDrop 0.9s cubic-bezier(0.34,1.5,0.64,1);">👑</div>
+              <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.2em;font-weight:800;margin-top:6px;">Champion Minggu Lepas · ${ch.label}</div>
+              <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:white;margin-top:6px;">${esc(ch.user.name)}</div>
+              <div style="font-size:13px;color:var(--accent);font-weight:800;margin-top:4px;">${ch.count} payslip 🔥</div>
+              <div style="font-size:11px;color:rgba(250,247,240,0.7);margin-top:12px;font-weight:600;">${isMe ? 'Anda juara! Pertahankan takhta minggu ini 💪' : 'Minggu baru · peluang baru. Rampas takhta! ⚔️'}</div>
+            </div>
+          `, 4200);
+          return;
+        }
+      }
+      
+      // 3 · 🌅 Daily opening card
+      const quotes = [
+        'Setiap call adalah satu peluang. 📞',
+        'Rezeki tak datang sendiri — kita yang kejar. 🏃',
+        'Customer reject bukan penamat, follow-up adalah kuasa. 💪',
+        'Hari ini punya effort, hujung bulan punya komisen. 💰',
+        '一通电话, 一个机会。坚持就是胜利!',
+        'Senyum dulu sebelum angkat phone — customer boleh rasa. 😊',
+        'Yang penting bukan berapa kali jatuh, tapi berapa kali bangun. 🌱',
+        'Top performer pun mula dari zero. Teruskan! 🚀',
+        'Follow-up hari ini = disburse minggu depan. 📈',
+        '今天多打十通电话, 月底多一份惊喜。',
+        'Jangan tunggu mood — action dulu, mood ikut. ⚡',
+        'Satu payslip sehari, target bulan pasti sampai. 🎯',
+        'Kerja kuat senyap-senyap, biar result yang bising. 🔥',
+        'Setiap "tak nak" bawa anda lebih dekat dengan "ya". 💎'
+      ];
+      const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 864e5);
+      const q = quotes[dayOfYear % quotes.length];
+      const due = this.getFollowUpsDue(user.id).filter(c => !['disbursed', 'rejected', 'unqualified'].includes(c.status)).length;
+      const streak = this.computeStreak(user.id);
+      this.showSplash(`
+        <div style="background:rgba(250,247,240,0.97);border-radius:24px;padding:26px 22px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,0.5);border:1px solid rgba(245,197,24,0.3);">
+          <div style="font-size:38px;">${new Date().getHours() < 12 ? '🌅' : new Date().getHours() < 19 ? '☀️' : '🌙'}</div>
+          <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--primary);margin-top:6px;">${this.greetingText().replace(/^.+ /, '')}, ${esc(user.name.split(' ')[0])}!</div>
+          ${streak > 0 ? `<div style="display:inline-flex;align-items:center;gap:5px;background:linear-gradient(120deg,#FFF3D6,#FFE9A8);border:1px solid rgba(212,165,14,0.4);padding:5px 14px;border-radius:20px;font-size:12px;font-weight:800;color:#B45309;margin-top:8px;">🔥 ${streak} hari streak</div>` : ''}
+          <div style="font-size:13.5px;color:var(--ink-2);margin-top:12px;font-weight:600;font-style:italic;line-height:1.5;">"${q}"</div>
+          ${due > 0 ? `<div style="margin-top:12px;padding:9px 14px;background:rgba(245,197,24,0.14);border-radius:12px;font-size:12px;font-weight:700;color:var(--accent-deep);">📌 ${due} follow-up menunggu hari ini</div>` : ''}
+          <div onclick="event.stopPropagation(); App.toggleSound();" style="margin-top:14px;font-size:10px;color:var(--ink-3);font-weight:700;cursor:pointer;">${this.soundOn() ? '🔊' : '🔇'} Sound: ${this.soundOn() ? 'ON' : 'OFF'} · tap untuk tukar</div>
+        </div>
+      `, 3400);
+    } catch (e) { console.warn('engagement failed:', e); }
   },
   
   // 📊 Case status pipeline stepper
@@ -8524,6 +8909,63 @@ if (currentUser.role === 'hq' && u.role === 'admin') {
         <input type="text" id="eu-pass" placeholder="••••••••">
       </div>
       
+      <div style="margin: 18px 0 10px;">
+        <div style="font-size: 11px; color: var(--ink-3); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em;">📇 Maklumat Peribadi</div>
+      </div>
+      
+      <div class="form-group">
+        <label>No. IC (12 digit · birthday auto-detect)</label>
+        <input type="tel" id="eu-ic" value="${esc(u.staff_ic || '')}" placeholder="e.g. 880515075123" maxlength="14"
+          oninput="const d = App.icToDob(this.value); document.getElementById('eu-ic-bday').textContent = d ? '🎂 Birthday: ' + new Date(d).toLocaleDateString('en-MY', {day:'numeric', month:'long', year:'numeric'}) : '';">
+        <div id="eu-ic-bday" style="font-size: 11px; color: var(--accent-deep); font-weight: 700; margin-top: 4px;">${(() => { const d = this.icToDob(u.staff_ic); return d ? '🎂 Birthday: ' + new Date(d).toLocaleDateString('en-MY', {day:'numeric', month:'long', year:'numeric'}) : ''; })()}</div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>📱 Phone Peribadi</label>
+          <input type="tel" id="eu-phone-p" value="${esc(u.phone_personal || '')}" placeholder="01X-XXXXXXX">
+        </div>
+        <div class="form-group">
+          <label>☎️ Phone Company 1</label>
+          <input type="tel" id="eu-phone-c1" value="${esc(u.phone_company1 || '')}" placeholder="01X-XXXXXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>☎️ Phone Company 2 (optional)</label>
+        <input type="tel" id="eu-phone-c2" value="${esc(u.phone_company2 || '')}" placeholder="01X-XXXXXXX">
+      </div>
+      
+      <div class="form-group">
+        <label>🏠 Alamat Rumah</label>
+        <textarea id="eu-address" rows="2" placeholder="Alamat penuh..." style="width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-family: inherit; font-size: 14px; background: var(--cream); resize: vertical;">${esc(u.address || '')}</textarea>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>🏦 Bank</label>
+          <input type="text" id="eu-bank-name" value="${esc(u.bank_name || '')}" placeholder="e.g. Maybank">
+        </div>
+        <div class="form-group">
+          <label>No. Akaun</label>
+          <input type="tel" id="eu-bank-acc" value="${esc(u.bank_account || '')}" placeholder="XXXXXXXXXXXX">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>🆘 Emergency Contact · Nama</label>
+          <input type="text" id="eu-emg-name" value="${esc(u.emergency_name || '')}" placeholder="Nama">
+        </div>
+        <div class="form-group">
+          <label>Hubungan</label>
+          <input type="text" id="eu-emg-rel" value="${esc(u.emergency_relation || '')}" placeholder="e.g. Suami / Ibu">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🆘 Emergency Phone</label>
+        <input type="tel" id="eu-emg-phone" value="${esc(u.emergency_phone || '')}" placeholder="01X-XXXXXXX">
+      </div>
+      
       <button class="submit-btn" onclick="App.saveUser('${userId}')">Save Changes</button>
       <button class="btn-secondary" onclick="hideModal()">Cancel</button>
       <button class="btn-secondary" style="margin-top: 8px; color: #0891B2; border-color: rgba(8,145,178,0.3);" onclick="App.viewStaffActivity('${userId}')">📊 View Activity & Performance</button>
@@ -8584,6 +9026,22 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     if (branchId) updates.branch_id = branchId;
     updates.leader_id = role === 'cs' ? leaderId : null;
     if (pass) updates.password = await Hash.sha256(pass);
+    
+    // 📇 Personal info fields
+    updates.staff_ic = document.getElementById('eu-ic')?.value.replace(/\D/g, '') || null;
+    updates.phone_personal = document.getElementById('eu-phone-p')?.value.trim() || null;
+    updates.phone_company1 = document.getElementById('eu-phone-c1')?.value.trim() || null;
+    updates.phone_company2 = document.getElementById('eu-phone-c2')?.value.trim() || null;
+    updates.address = document.getElementById('eu-address')?.value.trim() || null;
+    updates.bank_name = document.getElementById('eu-bank-name')?.value.trim() || null;
+    updates.bank_account = document.getElementById('eu-bank-acc')?.value.replace(/\D/g, '') || null;
+    updates.emergency_name = document.getElementById('eu-emg-name')?.value.trim() || null;
+    updates.emergency_relation = document.getElementById('eu-emg-rel')?.value.trim() || null;
+    updates.emergency_phone = document.getElementById('eu-emg-phone')?.value.trim() || null;
+    if (updates.staff_ic && updates.staff_ic.length !== 12) {
+      toast('⚠ IC mesti 12 digit');
+      return;
+    }
     
     DB.updateUser(userId, updates);  // updateUser already syncs to Cloud
     
@@ -8779,6 +9237,58 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
         <input type="text" id="nu-pass" value="1234" placeholder="Default: 1234">
       </div>
       
+      <div style="margin: 18px 0 10px;">
+        <div style="font-size: 11px; color: var(--ink-3); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em;">📇 Maklumat Peribadi (optional · boleh isi kemudian)</div>
+      </div>
+      <div class="form-group">
+        <label>No. IC (12 digit · birthday auto-detect)</label>
+        <input type="tel" id="nu-ic" placeholder="e.g. 880515075123" maxlength="14"
+          oninput="const d = App.icToDob(this.value); document.getElementById('nu-ic-bday').textContent = d ? '🎂 Birthday: ' + new Date(d).toLocaleDateString('en-MY', {day:'numeric', month:'long', year:'numeric'}) : '';">
+        <div id="nu-ic-bday" style="font-size: 11px; color: var(--accent-deep); font-weight: 700; margin-top: 4px;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>📱 Phone Peribadi</label>
+          <input type="tel" id="nu-phone-p" placeholder="01X-XXXXXXX">
+        </div>
+        <div class="form-group">
+          <label>☎️ Phone Company 1</label>
+          <input type="tel" id="nu-phone-c1" placeholder="01X-XXXXXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>☎️ Phone Company 2 (optional)</label>
+        <input type="tel" id="nu-phone-c2" placeholder="01X-XXXXXXX">
+      </div>
+      <div class="form-group">
+        <label>🏠 Alamat Rumah</label>
+        <textarea id="nu-address" rows="2" placeholder="Alamat penuh..." style="width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-family: inherit; font-size: 14px; background: var(--cream); resize: vertical;"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>🏦 Bank</label>
+          <input type="text" id="nu-bank-name" placeholder="e.g. Maybank">
+        </div>
+        <div class="form-group">
+          <label>No. Akaun</label>
+          <input type="tel" id="nu-bank-acc" placeholder="XXXXXXXXXXXX">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>🆘 Emergency · Nama</label>
+          <input type="text" id="nu-emg-name" placeholder="Nama">
+        </div>
+        <div class="form-group">
+          <label>Hubungan</label>
+          <input type="text" id="nu-emg-rel" placeholder="e.g. Suami / Ibu">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🆘 Emergency Phone</label>
+        <input type="tel" id="nu-emg-phone" placeholder="01X-XXXXXXX">
+      </div>
+      
       <button class="submit-btn" onclick="App.createUser()" id="nu-submit">Create Staff</button>
       <button class="btn-secondary" onclick="hideModal()">Cancel</button>
     `);
@@ -8851,6 +9361,17 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
         branch_id: branchId,
         leader_id: role === 'cs' ? leaderId : null, 
         password: hashedPass,
+        // 📇 Personal info
+        staff_ic: document.getElementById('nu-ic')?.value.replace(/\D/g, '') || null,
+        phone_personal: document.getElementById('nu-phone-p')?.value.trim() || null,
+        phone_company1: document.getElementById('nu-phone-c1')?.value.trim() || null,
+        phone_company2: document.getElementById('nu-phone-c2')?.value.trim() || null,
+        address: document.getElementById('nu-address')?.value.trim() || null,
+        bank_name: document.getElementById('nu-bank-name')?.value.trim() || null,
+        bank_account: document.getElementById('nu-bank-acc')?.value.replace(/\D/g, '') || null,
+        emergency_name: document.getElementById('nu-emg-name')?.value.trim() || null,
+        emergency_relation: document.getElementById('nu-emg-rel')?.value.trim() || null,
+        emergency_phone: document.getElementById('nu-emg-phone')?.value.trim() || null,
         created_at: Date.now()
       };
       const saved = DB.addUser(newUser);
@@ -12844,6 +13365,9 @@ setTimeout(() => {
 setTimeout(() => {
   try { if (Auth.current()) App.checkFollowUpReminders(); } catch (_) {}
 }, 6000);
+setTimeout(() => {
+  try { if (Auth.current()) App.dailyEngagement(); } catch (_) {}
+}, 4500);
 
 // Cloud status indicator polling (10s interval - saves mobile battery)
 setInterval(() => {
