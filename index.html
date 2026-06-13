@@ -979,7 +979,11 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 .month-pill .dot { box-shadow: 0 0 0 0 rgba(46,125,50,0.5); animation: badgePulse 2.4s ease-in-out infinite; }
 
 /* Bottom nav · floating glass pill */
-.bottom-nav { left: 50%; transform: translateX(-50%); bottom: 10px; width: calc(100% - 24px); max-width: 456px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.7); background: rgba(250,247,240,0.82); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); box-shadow: 0 12px 36px rgba(8,64,37,0.18), inset 0 1px 0 rgba(255,255,255,0.85); padding: 8px 10px 10px; }
+@media (max-width: 767px) {
+  .bottom-nav { left: 50%; transform: translateX(-50%); bottom: 10px; width: calc(100% - 24px); max-width: 456px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.7); background: rgba(250,247,240,0.86); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); box-shadow: 0 12px 36px rgba(8,64,37,0.18), inset 0 1px 0 rgba(255,255,255,0.85); padding: 8px 10px 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; justify-content: flex-start; }
+  .bottom-nav::-webkit-scrollbar { display: none; }
+  .bottom-nav .nav-item { flex: 1 0 auto; min-width: 56px; }
+}
 .nav-item .icon { transition: all 0.22s cubic-bezier(0.34,1.5,0.64,1); }
 .nav-item.active .icon { transform: translateY(-2px) scale(1.08); box-shadow: 0 6px 16px rgba(15,81,50,0.3); }
 .nav-item.active { position: relative; }
@@ -1020,6 +1024,11 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 @keyframes splashFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes splashPop { from { opacity: 0; transform: translateY(30px) scale(0.88); } to { opacity: 1; transform: none; } }
 @keyframes crownDrop { 0% { opacity: 0; transform: translateY(-60px) rotate(-18deg) scale(0.6); } 60% { transform: translateY(6px) rotate(4deg) scale(1.06); } 100% { opacity: 1; transform: none; } }
+
+/* ── ✨ Cheer pop + 💖 hearts + feed copies ── */
+@keyframes cheerIn { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0.5); } 12% { opacity: 1; transform: translate(-50%,-50%) scale(1.08); } 20% { transform: translate(-50%,-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-58%) scale(0.96); } }
+@keyframes heartUp { 0% { opacity: 0; transform: translateY(0) translateX(0) scale(0.6); } 10% { opacity: 1; } 100% { opacity: 0; transform: translateY(-105vh) translateX(var(--hdrift, 0px)) scale(1.15) rotate(12deg); } }
+.feed-copy { display: inline-flex; align-items: center; gap: 14px; padding-right: 28px; }
 </style>
 </head>
 <body>
@@ -3909,6 +3918,8 @@ this.bindCommonEvents();
       this.state.currentScreen = this.defaultScreen(result.user);
       setTimeout(() => this.checkFollowUpReminders(), 2000);
       setTimeout(() => this.dailyEngagement(), 900);
+      this.playWelcomeTune();
+      this.checkOffHoursLove();
       
       // Load notifications from Firestore for this user after login
       if (window.Cloud?.connected) {
@@ -4041,7 +4052,8 @@ this.bindCommonEvents();
     return this.topBar(user) + this.monthPill() + 
       this.renderAnnouncementBanner() + 
       this.renderPerformanceBanner(user) + 
-      this.renderLiveFeed(user) + `
+      this.renderLiveFeed(user) + 
+      this.renderHallOfFame(user) + `
       ${(() => {
         const com = Logic.csCommission(user.id);
         const leaderCom = user.role === 'solo' ? Logic.leaderCommission(user.id) : null;
@@ -5636,6 +5648,8 @@ ${stage2Done && canProcessStage2 ? (
     });
     hideModal();
     toast('Submitted to Koperasi');
+    this.cheerPop('🎉', 'Tahniah!', 'KPI Submitted · kejar approve pula! 🚀');
+    this.playFanfare();
     this.render();
   },
   
@@ -5972,7 +5986,8 @@ ${stage2Done && canProcessStage2 ? (
     return this.topBar(user) + this.monthPill() + 
       this.renderAnnouncementBanner() + 
       this.renderPerformanceBanner(user) + 
-      this.renderLiveFeed(user) + `
+      this.renderLiveFeed(user) + 
+      this.renderHallOfFame(user) + `
       ${(() => {
         const lcom = Logic.leaderCommission(user.id);
         const total = lcom?.total || 0;
@@ -6331,6 +6346,7 @@ ${Permissions.canViewProfit(user) ? `
       </div>
       
       ${this.renderLiveFeed(user)}
+      ${this.renderHallOfFame(user)}
       ${this.renderTrendChart(branchId)}
 
       ${branchBreakdown ? `
@@ -7366,8 +7382,8 @@ ${Permissions.canViewProfit(user) ? `
     if (ch && ch.user.id === userId) badges.push({ i: '👑', l: 'Champion minggu lepas' });
     
     const st = this.computeStreak(userId);
-    if (st >= 30) badges.push({ i: '🔥', l: st + '-day streak!' });
-    else if (st >= 7) badges.push({ i: '🔥', l: st + '-day streak' });
+    if (st >= 20) badges.push({ i: '🔥', l: st + ' hari · sebulan penuh!' });
+    else if (st >= 5) badges.push({ i: '🔥', l: st + ' hari · seminggu penuh' });
     
     return badges;
   },
@@ -7392,11 +7408,13 @@ ${Permissions.canViewProfit(user) ? `
     });
     if (items.length === 0) return '';
     items.sort((a, b) => b.t.localeCompare(a.t));
-    const seg = items.slice(0, 12).map(i => `<span class="feed-item">${i.h}</span>`).join('<span class="feed-dot">✦</span>');
+    const top = items.slice(0, 12);
+    const seg = top.map(i => `<span class="feed-item">${i.h}</span><span class="feed-dot">✦</span>`).join('');
+    const dur = Math.max(16, top.length * 5);
     return `
       <div class="live-feed">
         <span class="feed-live-tag">LIVE</span>
-        <div class="feed-viewport"><div class="feed-track">${seg}<span class="feed-dot">✦</span>${seg}<span class="feed-dot">✦</span></div></div>
+        <div class="feed-viewport"><div class="feed-track" style="animation-duration: ${dur}s;"><div class="feed-copy">${seg}</div><div class="feed-copy">${seg}</div></div></div>
       </div>
     `;
   },
@@ -7422,6 +7440,209 @@ ${Permissions.canViewProfit(user) ? `
         o.start(t + off); o.stop(t + off + 0.55);
       });
     } catch (_) {}
+  },
+  
+  // 🎵 Welcome tune (3s gentle arpeggio)
+  playWelcomeTune() {
+    if (!this.soundOn()) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const t = ctx.currentTime;
+      const notes = [[523.25, 0, 0.5], [659.25, 0.22, 0.5], [783.99, 0.44, 0.5], [1046.5, 0.66, 0.9], [783.99, 1.3, 0.5], [1046.5, 1.55, 1.3]];
+      notes.forEach(([f, off, len]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + off);
+        g.gain.exponentialRampToValueAtTime(0.12, t + off + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + off + len);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t + off); o.stop(t + off + len + 0.05);
+      });
+    } catch (_) {}
+  },
+  
+  // 👏 Applause (synthesized clap bursts)
+  applause() {
+    if (!this.soundOn()) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const t = ctx.currentTime;
+      for (let i = 0; i < 14; i++) {
+        const off = i * 0.085 + Math.random() * 0.05;
+        const len = 0.05;
+        const buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / d.length, 2);
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1200 + Math.random() * 1400; bp.Q.value = 1.2;
+        const g = ctx.createGain(); g.gain.value = 0.22 + Math.random() * 0.12;
+        src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+        src.start(t + off);
+      }
+    } catch (_) {}
+  },
+  
+  // 🎺 Deal fanfare (3s triumphant)
+  playFanfare() {
+    if (!this.soundOn()) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const t = ctx.currentTime;
+      const seq = [[392, 0, 0.18], [523.25, 0.16, 0.18], [659.25, 0.32, 0.18], [783.99, 0.48, 0.65]];
+      seq.forEach(([f, off, len]) => {
+        [1, 2].forEach(h => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = h === 1 ? 'square' : 'triangle'; o.frequency.value = f * h;
+          g.gain.setValueAtTime(0.0001, t + off);
+          g.gain.exponentialRampToValueAtTime(h === 1 ? 0.08 : 0.1, t + off + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + off + len);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(t + off); o.stop(t + off + len + 0.05);
+        });
+      });
+      // Final chord
+      [523.25, 659.25, 783.99, 1046.5].forEach(f => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + 1.15);
+        g.gain.exponentialRampToValueAtTime(0.08, t + 1.2);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t + 1.15); o.stop(t + 2.9);
+      });
+    } catch (_) {}
+  },
+  
+  // ✨ Center cheer pop (non-blocking, auto-dismiss)
+  cheerPop(emoji, title, sub) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:34%;left:50%;transform:translate(-50%,-50%);z-index:9997;pointer-events:none;text-align:center;animation:cheerIn 1.9s cubic-bezier(0.34,1.4,0.64,1) forwards;';
+    el.innerHTML = `
+      <div style="font-size:54px;filter:drop-shadow(0 8px 22px rgba(245,197,24,0.5));">${emoji}</div>
+      <div style="font-family:'Fraunces',serif;font-size:21px;font-weight:700;color:var(--accent);background:rgba(8,64,37,0.9);padding:7px 20px;border-radius:14px;margin-top:6px;box-shadow:0 14px 40px rgba(0,0,0,0.35);">${title}</div>
+      ${sub ? `<div style="font-size:11.5px;font-weight:700;color:white;background:rgba(8,64,37,0.75);padding:5px 14px;border-radius:10px;margin-top:5px;display:inline-block;">${sub}</div>` : ''}
+    `;
+    document.body.appendChild(el);
+    try { navigator.vibrate && navigator.vibrate(20); } catch (_) {}
+    setTimeout(() => el.remove(), 2000);
+  },
+  
+  // 💖 Rainbow hearts (off-hours appreciation)
+  rainbowHearts(msg) {
+    const hearts = ['❤️', '🧡', '💛', '💚', '💙', '💜', '💖'];
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9996;overflow:hidden;';
+    let html = '';
+    for (let i = 0; i < 22; i++) {
+      const h = hearts[i % hearts.length];
+      const left = 5 + Math.random() * 90;
+      const size = 16 + Math.random() * 18;
+      const delay = Math.random() * 1.4;
+      const dur = 2.6 + Math.random() * 1.8;
+      const drift = -40 + Math.random() * 80;
+      html += `<span style="position:absolute;bottom:-40px;left:${left}%;font-size:${size}px;animation:heartUp ${dur}s ${delay}s ease-out forwards;--hdrift:${drift}px;">${h}</span>`;
+    }
+    html += `<div style="position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);animation:cheerIn 3.4s ease forwards;text-align:center;">
+      <div style="font-size:13px;font-weight:700;color:white;background:linear-gradient(120deg,rgba(180,40,120,0.92),rgba(120,40,180,0.92));padding:10px 20px;border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,0.35);max-width:280px;line-height:1.5;">${msg}</div>
+    </div>`;
+    wrap.innerHTML = html;
+    document.body.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 5200);
+  },
+  
+  // Off-hours / weekend appreciation check (once per day)
+  checkOffHoursLove() {
+    try {
+      const user = Auth.current();
+      if (!user) return;
+      const now = new Date();
+      const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+      const isLate = now.getHours() >= 19 || now.getHours() < 7;
+      if (!isWeekend && !isLate) return;
+      const key = `awara_love_${user.id}_${now.toISOString().slice(0, 10)}`;
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+      const first = esc(user.name.split(' ')[0]);
+      const msg = isWeekend
+        ? `💖 ${first}, hujung minggu pun masih on! Dedikasi macam ni yang buat anda berbeza. Terima kasih! 🌈`
+        : `💖 ${first}, dah lepas waktu kerja tapi masih berusaha... Effort macam ni tak akan sia-sia. Respect! 🌈`;
+      setTimeout(() => this.rainbowHearts(msg), 1600);
+    } catch (_) {}
+  },
+  
+  // 🏆 Top performer for a metric within a date range
+  topPerformer(metric, from, to, branchId) {
+    const users = DB.users().filter(u => !u.inactive && ['cs', 'solo'].includes(u.role) && (!branchId || u.branch_id === branchId));
+    let best = null;
+    users.forEach(u => {
+      const cs = DB.cases().filter(x => x.source_cs_id === u.id && x.status !== 'unqualified');
+      let v = 0;
+      if (metric === 'ps') v = cs.filter(x => x.date_payslip >= from && x.date_payslip <= to && !x.is_duplicate).length;
+      else if (metric === 'kpi') v = cs.filter(x => x.date_submitted >= from && x.date_submitted <= to).length;
+      else if (metric === 'kfi') v = cs.filter(x => x.status === 'disbursed' && x.date_disbursed >= from && x.date_disbursed <= to).reduce((s, x) => s + (x.disburse_amount || 0), 0);
+      if (v > 0 && (!best || v > best.v)) best = { u, v };
+    });
+    return best;
+  },
+  
+  // 🏆 Hall of Fame · last week + last month champions (PS/KPI/KFI)
+  renderHallOfFame(user) {
+    const branchId = Permissions.canViewAllBranches(user) ? null : user.branch_id;
+    const memoKey = 'hof_' + (branchId || 'all') + '_' + new Date().toISOString().slice(0, 10);
+    this._hofMemo = this._hofMemo || {};
+    if (!(memoKey in this._hofMemo)) {
+      // Last full week (Mon–Sun)
+      const mon = new Date();
+      const dow = mon.getDay() === 0 ? 7 : mon.getDay();
+      mon.setDate(mon.getDate() - dow + 1 - 7);
+      const ws = mon.toISOString().slice(0, 10);
+      const we = new Date(mon); we.setDate(we.getDate() + 6);
+      const weS = we.toISOString().slice(0, 10);
+      const wkLabel = mon.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' }) + '–' + we.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' });
+      // Last month
+      const lm = new Date(); lm.setMonth(lm.getMonth() - 1);
+      const lmYm = lm.toISOString().slice(0, 7);
+      const lmFrom = lmYm + '-01', lmTo = lmYm + '-31';
+      const lmLabel = lm.toLocaleDateString('en-MY', { month: 'long', year: 'numeric' });
+      
+      this._hofMemo[memoKey] = {
+        wkLabel, lmLabel,
+        week: { ps: this.topPerformer('ps', ws, weS, branchId), kpi: this.topPerformer('kpi', ws, weS, branchId), kfi: this.topPerformer('kfi', ws, weS, branchId) },
+        month: { ps: this.topPerformer('ps', lmFrom, lmTo, branchId), kpi: this.topPerformer('kpi', lmFrom, lmTo, branchId), kfi: this.topPerformer('kfi', lmFrom, lmTo, branchId) }
+      };
+    }
+    const hof = this._hofMemo[memoKey];
+    if (!hof.week.ps && !hof.week.kpi && !hof.week.kfi && !hof.month.ps && !hof.month.kpi && !hof.month.kfi) return '';
+    
+    const cell = (icon, label, b, isMoney) => `
+      <div style="flex:1;min-width:0;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.07);border:1px solid rgba(245,197,24,0.22);border-radius:12px;">
+        <div style="font-size:9px;color:var(--accent);font-weight:800;letter-spacing:0.1em;">${icon} ${label}</div>
+        ${b ? `
+          <div style="font-size:12.5px;font-weight:800;color:white;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.u.name.split(' ')[0])}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--accent);">${isMoney ? 'RM' + fmtK(b.v) : b.v}</div>
+        ` : '<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:6px;">—</div>'}
+      </div>
+    `;
+    const row = (tag, label, d) => `
+      <div style="margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span style="background:rgba(245,197,24,0.2);color:var(--accent);font-size:8.5px;font-weight:800;letter-spacing:0.12em;padding:3px 8px;border-radius:7px;">${tag}</span>
+          <span style="font-size:9px;color:rgba(250,247,240,0.6);font-weight:700;">${label}</span>
+        </div>
+        <div style="display:flex;gap:6px;">${cell('📥', 'PAYSLIP', d.ps, false)}${cell('📤', 'KPI', d.kpi, false)}${cell('💰', 'KFI', d.kfi, true)}</div>
+      </div>
+    `;
+    return `
+      <div style="margin: 12px 20px 0; padding: 14px 14px 14px; background: linear-gradient(160deg, #11402A 0%, #0B2E1E 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 12px 32px rgba(8,40,25,0.35); border: 1px solid rgba(245,197,24,0.18); animation: cardRise 0.5s 0.1s both;">
+        <div style="position:absolute;top:-40px;left:-40px;width:130px;height:130px;background:radial-gradient(circle, rgba(245,197,24,0.18) 0%, transparent 65%);"></div>
+        <div style="display:flex;align-items:center;gap:8px;position:relative;">
+          <span style="font-size:18px;animation:stepPulse 2.6s ease-in-out infinite;">🏆</span>
+          <span style="font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--accent);">Hall of Fame</span>
+        </div>
+        ${row('MINGGU LEPAS', hof.wkLabel, hof.week)}
+        ${row('BULAN LEPAS', hof.lmLabel, hof.month)}
+      </div>
+    `;
   },
   
   // Full-screen splash overlay (tap to dismiss)
@@ -7632,6 +7853,9 @@ const ic = document.getElementById('f-ic').value.replace(/[^0-9]/g, '');
     }
     
     toast('Payslip saved · Awaiting Leader to process');
+    const praise = [['👏', 'Good Job!'], ['🌟', 'Well Done!'], ['💪', 'Padu!'], ['🔥', 'Mantap!'], ['🙌', 'Terbaik!'], ['✨', 'Steady!']][Math.floor(Math.random() * 6)];
+    this.cheerPop(praise[0], praise[1], '+1 Payslip · teruskan momentum!');
+    this.applause();
     this.goto(this.defaultScreen(user));
   },
   
