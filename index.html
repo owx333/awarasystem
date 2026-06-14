@@ -1564,6 +1564,7 @@ const DB = {
     notifications: 'awara_notifications', loginAttempts: 'awara_login_attempts',
     attendance: 'awara_attendance',
     targets: 'awara_targets',
+    payouts: 'awara_payouts',
   },
   
   // ============ IN-MEMORY CACHE (Performance) ============
@@ -2049,6 +2050,25 @@ cases[idx] = { ...before, ...updates };
       medical_used: medical, medical_total: policy.medical_days, medical_remaining: Math.max(0, policy.medical_days - medical),
       emergency_used: emergency, emergency_total: policy.emergency_days, emergency_remaining: Math.max(0, policy.emergency_days - emergency)
     };
+  },
+
+  // ========== COMMISSION PAYOUT TRACKER ==========
+  payouts() { return this.get(this.K.payouts, []); },
+  getPayout(userId, ym) { return this.payouts().find(p => p.user_id === userId && p.ym === ym) || null; },
+  setPayout(userId, ym, data) {
+    const ps = this.payouts();
+    const id = `payout_${userId}_${ym}`;
+    const idx = ps.findIndex(p => p.id === id);
+    const rec = { id, user_id: userId, ym, ...data };
+    if (idx >= 0) ps[idx] = rec; else ps.push(rec);
+    this.set(this.K.payouts, ps);
+    if (window.Cloud?.connected) window.Cloud.setDoc('payouts', id, rec);
+  },
+  deletePayout(userId, ym) {
+    const id = `payout_${userId}_${ym}`;
+    const ps = this.payouts().filter(p => p.id !== id);
+    this.set(this.K.payouts, ps);
+    if (window.Cloud?.connected) window.Cloud.deleteDoc('payouts', id);
   },
 
   // ========== MONTHLY KPI TARGETS ==========
@@ -3770,6 +3790,9 @@ const App = {
       case 'admin-targets':
         if (!Permissions.isAdminLevel(user)) { content = this.renderAdminDashboard(user); break; }
         content = this.renderAdminTargets(user); break;
+      case 'admin-payroll':
+        if (!Permissions.isAdminLevel(user)) { content = this.renderAdminDashboard(user); break; }
+        content = this.renderAdminPayroll(user); break;
       case 'admin-settings': 
         if (!Permissions.canEditSettings(user)) { content = this.renderAdminDashboard(user); break; }
         content = this.renderAdminSettings(user); break;
@@ -4738,12 +4761,104 @@ ${stage2Done && canProcessStage2 ? (
         <button class="btn-secondary" style="background: #FAF5FF; color: #7C3AED; border: 1px solid rgba(124,58,237,0.3); font-weight: 800; margin-top: 14px;" onclick="App.openAdminOverride('${c.id}')">🛠️ Admin Override · Edit Dates / Reason / Status</button>
       ` : ''}
       
+      <!-- WhatsApp Template Button -->
+      ${c.phone ? `
+        <button class="btn-secondary" style="background:#E7F9EF;color:#075E54;border:1px solid #A7F3D0;font-weight:800;margin-top:8px;" onclick="App.openWhatsAppTemplates('${c.id}')">💬 WhatsApp Templates</button>
+      ` : ''}
+
+      <!-- Document Checklist -->
+      <div style="margin-top:12px;padding:12px 14px;background:var(--cream-2);border-radius:12px;border:1px solid var(--border-2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-3);">📄 Dokumen Checklist</div>
+          <div style="font-size:11px;color:var(--ink-3);">${Object.values(c.docs||{}).filter(Boolean).length}/${5} collected</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          ${[
+            ['ic','IC / MyKad'],['payslip','Slip Gaji (3 bln)'],['bank_stmt','Penyata Bank'],
+            ['employer_letter','Surat Pengesahan Majikan'],['other_docs','Dokumen Lain']
+          ].map(([key, label]) => {
+            const checked = c.docs && c.docs[key];
+            const canToggle = canEdit || isAdminLike;
+            return `<div onclick="${canToggle?`App.toggleDoc('${c.id}','${key}')`:''}"
+              style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:${checked?'#D1FAE5':'var(--cream)'};border:1px solid ${checked?'#A7F3D0':'var(--border-2)'};cursor:${canToggle?'pointer':'default'};">
+              <span style="font-size:15px;">${checked?'☑':'☐'}</span>
+              <span style="font-size:11px;font-weight:700;color:${checked?'#065F46':'var(--ink-2)'};">${label}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
       ${canDelete ? `
         <button class="btn-secondary" style="background: #FEE; color: var(--danger); border: 1px solid var(--danger); font-weight: 800; margin-top: 14px;" onclick="App.deleteCase('${c.id}')">🗑 Delete Customer (Boss Only · Permanent)</button>
       ` : ''}
-      
+
       <button class="btn-secondary" onclick="hideModal()">Close</button>
     `);
+  },
+
+  // ===== WHATSAPP TEMPLATES =====
+  openWhatsAppTemplates(caseId) {
+    const c = DB.caseById(caseId);
+    if (!c || !c.phone) return;
+    const firstName = c.customer_name.split(' ')[0];
+    const pkg = LOAN_PACKAGES.find(p => p.id === c.package_id);
+    const intlPhone = (() => { const d = cleanPhone(c.phone); return d.startsWith('60') ? d : (d.startsWith('0') ? '6'+d : d); })();
+
+    const templates = [
+      {
+        label: '👋 Perkenalan / Follow Up',
+        msg: `Assalamualaikum ${firstName}, saya dari AWARA Sdn Bhd. Saya ada tawaran pinjaman peribadi yang menarik untuk anda. Boleh saya terangkan lebih lanjut?`
+      },
+      {
+        label: '📋 Cadangan Pakej',
+        msg: `Assalamualaikum ${firstName}! Berdasarkan maklumat anda, saya ingin mencadangkan pakej pinjaman${pkg?' '+pkg.name:''}: Pinjaman ${c.loan_amount?fmtRM(c.loan_amount):''}, ansuran ${c.bulanan?fmtRM(c.bulanan)+'/bulan':''}, tenor ${c.tenor||'—'} bulan. Adakah ini sesuai untuk anda?`
+      },
+      {
+        label: '📤 Permohonan Dihantar',
+        msg: `Assalamualaikum ${firstName}! Permohonan pinjaman anda telah kami hantar kepada pihak koperasi. Kami akan maklumkan hasilnya dalam masa terdekat. Terima kasih kerana mempercayai AWARA! 🙏`
+      },
+      {
+        label: '✅ Pinjaman Diluluskan',
+        msg: `Tahniah ${firstName}! 🎉 Pinjaman anda telah DILULUSKAN! Sila berhubung dengan kami untuk langkah seterusnya mengenai proses pengeluaran. Terima kasih!`
+      },
+      {
+        label: '💸 Pinjaman Dikeluarkan',
+        msg: `Assalamualaikum ${firstName}! Pinjaman anda${c.disburse_amount?' sebanyak '+fmtRM(c.disburse_amount):''} telah berjaya dikeluarkan. Selamat menggunakan dengan bijak! Hubungi kami jika ada pertanyaan. AWARA Sdn Bhd 💚`
+      },
+      {
+        label: '📞 Peringatan Follow Up',
+        msg: `Assalamualaikum ${firstName}! Ini adalah peringatan mesra dari AWARA Sdn Bhd. Adakah anda masih berminat dengan tawaran pinjaman kami? Sila hubungi kami untuk maklumat lanjut. Terima kasih!`
+      },
+      {
+        label: '📄 Mohon Dokumen',
+        msg: `Assalamualaikum ${firstName}! Untuk meneruskan permohonan anda, kami memerlukan dokumen berikut: IC/MyKad, Slip Gaji (3 bulan terkini), Penyata Bank. Sila hantarkan kepada kami secepat mungkin. Terima kasih!`
+      },
+    ];
+
+    showModal(`
+      <div class="modal-title">💬 WhatsApp Templates</div>
+      <div class="modal-sub">${esc(c.customer_name)} · ${fmtPhone(c.phone)}</div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+        ${templates.map(t => `
+          <a href="https://wa.me/${intlPhone}?text=${encodeURIComponent(t.msg)}" target="_blank" rel="noopener"
+            style="display:block;padding:12px 14px;background:#E7F9EF;border:1px solid #A7F3D0;border-radius:12px;text-decoration:none;color:#075E54;font-weight:700;font-size:13px;cursor:pointer;">
+            ${t.label}
+            <div style="font-size:10px;font-weight:400;color:#4A7C5F;margin-top:4px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.msg.substring(0,60)}...</div>
+          </a>
+        `).join('')}
+      </div>
+      <button class="btn-secondary" onclick="hideModal()" style="margin-top:12px;width:100%;">Tutup</button>
+    `);
+  },
+
+  // ===== DOCUMENT CHECKLIST TOGGLE =====
+  toggleDoc(caseId, docKey) {
+    const c = DB.caseById(caseId);
+    if (!c) return;
+    const docs = { ...c.docs };
+    docs[docKey] = !docs[docKey];
+    DB.updateCase(caseId, { docs });
+    this.viewCase(caseId);
   },
   openAdminDetail(caseId) {
     const c = DB.caseById(caseId);
@@ -9711,6 +9826,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
       <div style="margin-top:14px;">
         ${toolButton('📢', 'Post Announcement', 'Hantar pengumuman kepada semua staff', 'admin-announcements', '#3B82F6', !canAnnounce)}
         ${toolButton('🎯', 'Monthly Targets', 'Set KPI targets per staff per month', 'admin-targets', '#7C3AED')}
+        ${toolButton('💳', 'Commission Payroll', 'Track & mark monthly commission payments', 'admin-payroll', '#16A34A')}
         ${toolButton('🏦', 'Manage Koperasi', 'Tambah/edit loan packages & faedah', 'admin-koperasi', '#F59E0B', !canKoperasi)}
         ${toolButton('⚙️', 'System Settings', 'KPI tiers, daily targets, commission rules', 'admin-settings', '#DC2626', !canSettings)}
       </div>
@@ -11374,6 +11490,141 @@ const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id ===
     toast(`Report downloaded: ${filename}`);
   },
   
+  // ============ ADMIN PAYROLL / COMMISSION PAYOUT TRACKER ============
+  renderAdminPayroll(user) {
+    const months = Logic.availableMonths();
+    const currentYM = new Date().toISOString().slice(0,7);
+    const selectedYM = this.state.payrollMonth || currentYM;
+    const canPickBranch = Permissions.canViewAllBranches(user) || user.role === 'admin';
+    const selectedBranch = canPickBranch ? (this.state.payrollBranch || 'all') : user.branch_id;
+    const branches = DB.branches().filter(b => b.id !== 'hq');
+    const s = DB.settings();
+    const gajiPokok = s?.gaji_pokok || {};
+
+    let staffList = DB.users().filter(u => !u.inactive && ['cs','leader','solo'].includes(u.role));
+    if (selectedBranch !== 'all') staffList = staffList.filter(u => u.branch_id === selectedBranch);
+
+    const monthName = new Date(selectedYM+'-01').toLocaleDateString('en-MY',{month:'long',year:'numeric'});
+
+    // Compute commission for each staff
+    const staffData = staffList.map(u => {
+      let com = 0, comLabel = '';
+      try {
+        if (u.role === 'cs') {
+          const c = Logic.csCommission(u.id, selectedYM);
+          com = c ? c.total : 0;
+          comLabel = c ? `PS RM${fmt(c.psCom)} + Submit RM${fmt(c.smCom)}` : '—';
+        } else {
+          const c = Logic.leaderCommission(u.id, selectedYM);
+          com = c ? c.total : 0;
+          comLabel = com > 0 ? `KFI + Bonus` : '—';
+        }
+      } catch(_) {}
+      const gp = gajiPokok[u.role] || 0;
+      const payout = DB.getPayout(u.id, selectedYM);
+      return { u, com, comLabel, gp, total: gp + com, payout };
+    });
+
+    const totalCom = staffData.reduce((s, d) => s + d.com, 0);
+    const totalGaji = staffData.reduce((s, d) => s + d.gp, 0);
+    const totalPaid = staffData.filter(d => d.payout?.paid).length;
+
+    return this.topBar(user, 'Commission Payroll', 'Track monthly commission payments') + `
+      <!-- Controls -->
+      <div style="padding:12px 20px 4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select onchange="App.state.payrollMonth=this.value;App.render();" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;">
+          ${months.slice(0,12).map(ym=>`<option value="${ym}" ${selectedYM===ym?'selected':''}>${new Date(ym+'-01').toLocaleDateString('en-MY',{month:'short',year:'numeric'})}</option>`).join('')}
+        </select>
+        ${canPickBranch ? `
+          <select onchange="App.state.payrollBranch=this.value;App.render();" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;">
+            <option value="all" ${selectedBranch==='all'?'selected':''}>All Branches</option>
+            ${branches.map(b=>`<option value="${b.id}" ${selectedBranch===b.id?'selected':''}>${b.name}</option>`).join('')}
+          </select>
+        ` : ''}
+      </div>
+
+      <!-- Summary stats -->
+      <div style="margin:8px 20px;padding:14px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+        <div><div style="font-size:18px;font-weight:800;">RM ${fmtK(totalCom)}</div><div style="font-size:9px;opacity:0.8;text-transform:uppercase;">Total Komisen</div></div>
+        <div><div style="font-size:18px;font-weight:800;">RM ${fmtK(totalGaji)}</div><div style="font-size:9px;opacity:0.8;text-transform:uppercase;">Gaji Pokok</div></div>
+        <div><div style="font-size:18px;font-weight:800;">${totalPaid}/${staffData.length}</div><div style="font-size:9px;opacity:0.8;text-transform:uppercase;">Sudah Bayar</div></div>
+      </div>
+
+      <!-- Staff payroll cards -->
+      <div style="padding:0 20px 80px;">
+        ${staffData.map(({ u, com, comLabel, gp, total, payout }) => `
+          <div class="qa-card" style="margin-bottom:10px;border-left:4px solid ${payout?.paid?'var(--success)':'var(--border-2)'};">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:${payout?.paid?'var(--success)':'var(--primary)'};color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">${initials(u.name)}</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:800;color:var(--ink);">${esc(u.name)}</div>
+                <div style="font-size:10px;color:var(--ink-3);">${ROLE_LABELS[u.role]||u.role} · ${DB.branch(u.branch_id)?.name||''}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--primary);">RM ${fmt(total)}</div>
+                <div style="font-size:9px;color:var(--ink-3);">jumlah</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;margin-bottom:10px;">
+              <div style="background:var(--cream-2);border-radius:8px;padding:8px;">
+                <div style="color:var(--ink-3);">Gaji Pokok</div>
+                <div style="font-weight:800;color:var(--ink);">RM ${fmt(gp)}</div>
+              </div>
+              <div style="background:var(--cream-2);border-radius:8px;padding:8px;">
+                <div style="color:var(--ink-3);">Komisen</div>
+                <div style="font-weight:800;color:var(--success);">RM ${fmt(com)}</div>
+                <div style="font-size:9px;color:var(--ink-3);">${comLabel}</div>
+              </div>
+            </div>
+            ${payout?.paid ? `
+              <div style="background:#D1FAE5;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="font-size:11px;font-weight:800;color:#065F46;">✅ Dibayar · ${payout.paid_date ? new Date(payout.paid_date).toLocaleDateString('en-MY') : ''}${payout.notes ? ' · ' + payout.notes : ''}</div>
+                <button onclick="App.unmarkPayout('${u.id}','${selectedYM}')" style="background:transparent;border:1px solid rgba(6,95,70,0.3);color:#065F46;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">↩ Undo</button>
+              </div>
+            ` : `
+              <button onclick="App.openMarkPayout('${u.id}','${selectedYM}',${total})" style="width:100%;background:var(--primary);color:white;border:none;padding:10px;border-radius:10px;font-family:inherit;font-weight:800;font-size:12px;cursor:pointer;">💳 Mark as Paid · RM ${fmt(total)}</button>
+            `}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  openMarkPayout(userId, ym, amount) {
+    const user = DB.user(userId);
+    showModal(`
+      <div class="modal-title">💳 Mark Bayaran Komisen</div>
+      <div class="modal-sub">${esc(user?.name||userId)} · ${ym} · RM ${fmt(amount)}</div>
+      <div class="form-group">
+        <label>Tarikh Bayar</label>
+        <input type="date" id="po-date" value="${new Date().toISOString().slice(0,10)}">
+      </div>
+      <div class="form-group">
+        <label>Catatan (optional)</label>
+        <input type="text" id="po-notes" placeholder="e.g. Bank transfer, tunai..." style="width:100%;padding:10px;border:1px solid var(--border-2);border-radius:10px;font-family:inherit;">
+      </div>
+      <button class="submit-btn" onclick="App.confirmMarkPayout('${userId}','${ym}',${amount})">✅ Confirm Paid</button>
+      <button class="btn-secondary" onclick="hideModal()">Batal</button>
+    `);
+  },
+
+  confirmMarkPayout(userId, ym, amount) {
+    const paidDate = document.getElementById('po-date').value;
+    const notes = document.getElementById('po-notes').value.trim();
+    const actor = Auth.current();
+    DB.setPayout(userId, ym, { paid: true, amount, paid_date: paidDate, notes, paid_by: actor?.id, paid_at: new Date().toISOString() });
+    hideModal();
+    toast(`✅ Bayaran direkod untuk ${DB.user(userId)?.name||userId}`);
+    this.render();
+  },
+
+  unmarkPayout(userId, ym) {
+    if (!confirm('Undo bayaran ini?')) return;
+    DB.deletePayout(userId, ym);
+    toast('↩ Bayaran dipadam');
+    this.render();
+  },
+
   // ============ ADMIN TARGETS SCREEN ============
   renderAdminTargets(user) {
     const months = Logic.availableMonths();
