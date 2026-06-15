@@ -435,10 +435,10 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 .role-tag { display: inline-block; margin-top: 5px; font-size: 10px; padding: 3px 9px; background: var(--primary-glow); color: var(--primary); border-radius: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Login */
-#screen-login { display: none; min-height: 100vh; background: linear-gradient(160deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%); color: var(--cream); padding: 40px 24px; position: relative; overflow: hidden; }
+#screen-login { display: none; min-height: 100vh; background: var(--primary-dark); color: var(--cream); padding: 40px 24px; position: relative; overflow: hidden; }
 #screen-login.active { display: flex; flex-direction: column; }
-#screen-login::before { content: ''; position: absolute; top: -100px; right: -100px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0%, transparent 70%); opacity: 0.15; }
-#screen-login::after { content: ''; position: absolute; bottom: -150px; left: -150px; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0%, transparent 60%); opacity: 0.1; }
+#screen-login::before { content: none; }
+#screen-login::after { content: none; }
 .login-header { margin-top: 50px; text-align: center; position: relative; }
 .login-awara { font-family: 'Archivo Black', sans-serif; font-weight: 900; font-size: 64px; color: var(--accent); letter-spacing: 0.02em; line-height: 0.9; margin: 0 auto 18px; text-shadow: 0 8px 24px rgba(245, 197, 24, 0.25); }
 .login-tagline { font-family: 'Fraunces', serif; font-size: 13px; font-weight: 400; font-style: italic; color: var(--accent-light); letter-spacing: 0.05em; text-align: center; }
@@ -898,12 +898,12 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 .login-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .login-orb { position: absolute; border-radius: 50%; filter: blur(2px); opacity: 0.5; animation: orbFloat 14s ease-in-out infinite; }
 .login-orb.o1 { display: none; }  /* big yellow glow removed → replaced by gold dust */
-.gold-dust { position: absolute; top: 0; right: 0; width: 65%; height: 60%; pointer-events: none; overflow: hidden; z-index: 1; }
+.gold-dust { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 1; }
 .gold-dust i { position: absolute; display: block; border-radius: 50%; background: radial-gradient(circle, #FFE9A8, #F5C518 60%, transparent); box-shadow: 0 0 6px rgba(245,197,24,0.6); animation: dustFloat linear infinite; opacity: 0; }
 @keyframes dustFloat { 0% { opacity: 0; transform: translateY(20px) translateX(0) scale(0.6); } 15% { opacity: 0.9; } 85% { opacity: 0.7; } 100% { opacity: 0; transform: translateY(-130px) translateX(var(--dx, 10px)) scale(1.1); } }
-.login-orb.o2 { width: 200px; height: 200px; bottom: 8%; left: -80px; background: radial-gradient(circle at 60% 40%, rgba(27,107,67,0.85), rgba(27,107,67,0.08) 70%); animation-delay: -4s; animation-duration: 18s; }
-.login-orb.o3 { width: 120px; height: 120px; top: 38%; right: 6%; background: radial-gradient(circle at 40% 40%, rgba(255,217,61,0.35), transparent 70%); animation-delay: -8s; animation-duration: 11s; }
-.login-grid-glow { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(245,197,24,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(245,197,24,0.045) 1px, transparent 1px); background-size: 44px 44px; mask-image: radial-gradient(ellipse 90% 60% at 50% 28%, black 30%, transparent 75%); animation: gridDrift 26s linear infinite; }
+.login-orb.o2 { display: none; }
+.login-orb.o3 { display: none; }
+.login-grid-glow { display: none; }
 @keyframes orbFloat { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(18px,-24px) scale(1.06); } 66% { transform: translate(-14px,16px) scale(0.96); } }
 @keyframes gridDrift { from { background-position: 0 0, 0 0; } to { background-position: 44px 44px, 44px 44px; } }
 
@@ -3833,9 +3833,28 @@ this.bindCommonEvents();
   },
   
   goto(screen) {
+    this.tick();   // 🔊 subtle nav click sound
     this.state.currentScreen = screen;
     this.render();
     window.scrollTo({ top: 0, behavior: 'instant' });
+  },
+  
+  // 🔊 Subtle UI click tick (for menu navigation)
+  tick() {
+    if (!this.soundOn()) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 660;
+      o.frequency.exponentialRampToValueAtTime(880, t + 0.04);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.06, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.1);
+    } catch (_) {}
   },
   
   renderPersonaBar() {
@@ -3947,13 +3966,14 @@ this.bindCommonEvents();
           <div class="login-orb o2"></div>
           <div class="login-orb o3"></div>
         </div>
-        <div class="gold-dust">${Array.from({length: 26}).map(() => {
+        <div class="gold-dust">${Array.from({length: 48}).map(() => {
           const left = Math.random() * 100;
-          const size = 2 + Math.random() * 4;
-          const dur = 5 + Math.random() * 6;
-          const delay = Math.random() * 8;
-          const dx = (Math.random() * 40 - 20).toFixed(0);
-          return `<i style="left:${left.toFixed(1)}%;bottom:-10px;width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s;--dx:${dx}px;"></i>`;
+          const startBottom = Math.random() * 100;   // spread starting points across full height
+          const size = 1.5 + Math.random() * 4;
+          const dur = 6 + Math.random() * 8;
+          const delay = Math.random() * 10;
+          const dx = (Math.random() * 50 - 25).toFixed(0);
+          return `<i style="left:${left.toFixed(1)}%;bottom:${startBottom.toFixed(1)}%;width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s;--dx:${dx}px;"></i>`;
         }).join('')}</div>
         <div class="login-grid-glow"></div>
         <div class="login-header">
@@ -7566,19 +7586,43 @@ ${Permissions.canViewProfit(user) ? `
     if (!this.soundOn()) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const t = ctx.currentTime;
-      for (let i = 0; i < 14; i++) {
-        const off = i * 0.085 + Math.random() * 0.05;
-        const len = 0.05;
-        const buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate);
+      if (ctx.state === 'suspended') ctx.resume();
+      const t0 = ctx.currentTime;
+      
+      // A single hand-clap = very short noise burst with fast attack + quick decay,
+      // shaped by a highpass (claps are bright/snappy, not "shhh").
+      const clap = (when, gain, bright) => {
+        const len = 0.13;
+        const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * len), ctx.sampleRate);
         const d = buf.getChannelData(0);
-        for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / d.length, 2);
+        for (let j = 0; j < d.length; j++) {
+          const p = j / d.length;
+          // sharp attack (first 3%) then exponential decay → "clap!" not "shhh"
+          const env = p < 0.03 ? p / 0.03 : Math.pow(1 - (p - 0.03) / 0.97, 5);
+          d[j] = (Math.random() * 2 - 1) * env;
+        }
         const src = ctx.createBufferSource(); src.buffer = buf;
-        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1200 + Math.random() * 1400; bp.Q.value = 1.2;
-        const g = ctx.createGain(); g.gain.value = 0.22 + Math.random() * 0.12;
-        src.connect(bp); bp.connect(g); g.connect(ctx.destination);
-        src.start(t + off);
+        const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1100 + bright * 600;
+        const peak = ctx.createBiquadFilter(); peak.type = 'peaking'; peak.frequency.value = 2200; peak.Q.value = 0.8; peak.gain.value = 6;
+        const g = ctx.createGain(); g.gain.value = gain;
+        src.connect(hp); hp.connect(peak); peak.connect(g); g.connect(ctx.destination);
+        src.start(t0 + when);
+      };
+      
+      // A crowd of ~18 claps, overlapping & irregular (multiple people, not in sync),
+      // building up then tapering — sounds like a small office cheering.
+      const n = 20;
+      for (let i = 0; i < n; i++) {
+        // base rhythm ~ every 0.1s but with human jitter so it's not robotic
+        const when = i * 0.085 + (Math.random() * 0.06 - 0.03);
+        // swell: louder in the middle of the burst
+        const swell = Math.sin((i / n) * Math.PI);
+        const gain = 0.18 + swell * 0.22 + Math.random() * 0.06;
+        clap(Math.max(0, when), gain, Math.random());
       }
+      // a couple of extra late claps for natural tail
+      clap(n * 0.085 + 0.05, 0.14, 0.4);
+      clap(n * 0.085 + 0.14, 0.10, 0.7);
     } catch (_) {}
   },
   
@@ -11343,7 +11387,7 @@ ${(this.state.exportFrom || this.state.exportTo) ? '<div style="font-size: 11px;
           <div class="qa-sub">Full HQ format · Pilih tarikh atau bulan</div>
         </div>
         <div class="qa-card" onclick="App.exportReport('by-status')" style="border-left: 4px solid #16A34A;">
-          <div class="qa-title">📑 Report E · By Status (NEW)</div>
+          <div class="qa-title">📑 Report E · By Status</div>
           <div class="qa-sub">Customers grouped by status · pilih status atau semua untuk breakdown lengkap</div>
         </div>
         <div class="qa-card" onclick="App.exportReport('full-customer-list')" style="border-left: 4px solid #7C3AED;">
@@ -11351,15 +11395,15 @@ ${(this.state.exportFrom || this.state.exportTo) ? '<div style="font-size: 11px;
           <div class="qa-sub">Lengkap: phone, IC, gaji, package, status, semua dates · for HQ master record</div>
         </div>
         <div class="qa-card" onclick="App.exportReport('koperasi-performance')" style="border-left: 4px solid #0EA5E9;">
-          <div class="qa-title">🏦 Report G · Per-Koperasi Performance (NEW)</div>
+          <div class="qa-title">🏦 Report G · Per-Koperasi Performance</div>
           <div class="qa-sub">Approval rate, disburse rate, avg loan per package · find best/worst koperasi</div>
         </div>
         <div class="qa-card" onclick="App.exportReport('cs-activity-timeline')" style="border-left: 4px solid #EC4899;">
-          <div class="qa-title">📅 Report H · CS Activity Timeline (NEW)</div>
+          <div class="qa-title">📅 Report H · CS Activity Timeline</div>
           <div class="qa-sub">Daily calls/WA/payslip per CS · find who's consistent vs slacking</div>
         </div>
         <div class="qa-card" onclick="App.exportReport('staff-details')" style="border-left: 4px solid #B8860B;">
-          <div class="qa-title">📇 Report I · Staff Details (NEW)</div>
+          <div class="qa-title">📇 Report I · Staff Details</div>
           <div class="qa-sub">Nama penuh, IC, tarikh lahir, phone, alamat, bank, emergency contact · full HR record</div>
         </div>
       </div>
@@ -13820,6 +13864,10 @@ async function bootstrap() {
       });
       window.Cloud.subscribe('announcements', items => {
         DB.set(DB.K.announcements, items);
+        debouncedRender();
+      });
+      window.Cloud.subscribe('topics', items => {
+        DB.set(DB.K.topics, items || []);
         debouncedRender();
       });
       window.Cloud.subscribe('branches', items => {
