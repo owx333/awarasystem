@@ -897,7 +897,10 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 #screen-login { position: relative; overflow: hidden; min-height: 100vh; }
 .login-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .login-orb { position: absolute; border-radius: 50%; filter: blur(2px); opacity: 0.5; animation: orbFloat 14s ease-in-out infinite; }
-.login-orb.o1 { width: 280px; height: 280px; top: -90px; right: -70px; background: radial-gradient(circle at 30% 30%, rgba(245,197,24,0.5), rgba(245,197,24,0.05) 70%); animation-delay: 0s; }
+.login-orb.o1 { display: none; }  /* big yellow glow removed → replaced by gold dust */
+.gold-dust { position: absolute; top: 0; right: 0; width: 65%; height: 60%; pointer-events: none; overflow: hidden; z-index: 1; }
+.gold-dust i { position: absolute; display: block; border-radius: 50%; background: radial-gradient(circle, #FFE9A8, #F5C518 60%, transparent); box-shadow: 0 0 6px rgba(245,197,24,0.6); animation: dustFloat linear infinite; opacity: 0; }
+@keyframes dustFloat { 0% { opacity: 0; transform: translateY(20px) translateX(0) scale(0.6); } 15% { opacity: 0.9; } 85% { opacity: 0.7; } 100% { opacity: 0; transform: translateY(-130px) translateX(var(--dx, 10px)) scale(1.1); } }
 .login-orb.o2 { width: 200px; height: 200px; bottom: 8%; left: -80px; background: radial-gradient(circle at 60% 40%, rgba(27,107,67,0.85), rgba(27,107,67,0.08) 70%); animation-delay: -4s; animation-duration: 18s; }
 .login-orb.o3 { width: 120px; height: 120px; top: 38%; right: 6%; background: radial-gradient(circle at 40% 40%, rgba(255,217,61,0.35), transparent 70%); animation-delay: -8s; animation-duration: 11s; }
 .login-grid-glow { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(245,197,24,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(245,197,24,0.045) 1px, transparent 1px); background-size: 44px 44px; mask-image: radial-gradient(ellipse 90% 60% at 50% 28%, black 30%, transparent 75%); animation: gridDrift 26s linear infinite; }
@@ -3704,7 +3707,6 @@ function teamName(leaderId) {
   return l ? l.name : '—';
 }
 function toast(msg) {
-  try { navigator.vibrate && navigator.vibrate(10); } catch (_) {}  // ✨ subtle haptic on mobile
   const container = document.getElementById('toast-container');
   if (!container) { Logger.debug('[toast]', msg); return; }
   const t = document.createElement('div');
@@ -3942,10 +3944,17 @@ this.bindCommonEvents();
     return `
       <section id="screen-login" class="screen">
         <div class="login-orbs">
-          <div class="login-orb o1"></div>
           <div class="login-orb o2"></div>
           <div class="login-orb o3"></div>
         </div>
+        <div class="gold-dust">${Array.from({length: 26}).map(() => {
+          const left = Math.random() * 100;
+          const size = 2 + Math.random() * 4;
+          const dur = 5 + Math.random() * 6;
+          const delay = Math.random() * 8;
+          const dx = (Math.random() * 40 - 20).toFixed(0);
+          return `<i style="left:${left.toFixed(1)}%;bottom:-10px;width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s;--dx:${dx}px;"></i>`;
+        }).join('')}</div>
         <div class="login-grid-glow"></div>
         <div class="login-header">
           <div class="login-awara">AWARA</div>
@@ -4004,7 +4013,7 @@ this.bindCommonEvents();
       this.state.currentScreen = this.defaultScreen(result.user);
       setTimeout(() => this.checkFollowUpReminders(), 2000);
       setTimeout(() => this.dailyEngagement(), 900);
-      this.playWelcomeTune();
+      setTimeout(() => this.playWelcomeTune(), 250);
       this.checkOffHoursLove();
       
       // Load notifications from Firestore for this user after login
@@ -5341,7 +5350,8 @@ ${stage2Done && canProcessStage2 ? (
     
     DB.updateCase(caseId, { 
       follow_up_date: date, 
-      follow_up_note: note 
+      follow_up_note: note,
+      follow_up_by: Auth.current()?.id || null   // only this person gets the reminder
     });
     toast(`📌 Reminder set: ${new Date(date).toLocaleDateString('en-MY', { day: '2-digit', month: 'short' })}`);
     this.viewCase(caseId);
@@ -5351,7 +5361,8 @@ ${stage2Done && canProcessStage2 ? (
     if (!confirm('Padam follow-up reminder?')) return;
     DB.updateCase(caseId, { 
       follow_up_date: null, 
-      follow_up_note: null 
+      follow_up_note: null,
+      follow_up_by: null
     });
     toast('Reminder cleared');
     this.viewCase(caseId);
@@ -5363,21 +5374,16 @@ ${stage2Done && canProcessStage2 ? (
     const user = DB.user(userId);
     if (!user) return [];
     
+    // 📌 Only show follow-ups that THIS user personally set (own reminders only)
+    // Backward-compat: older reminders without follow_up_by fall back to scope rules
     let cases = DB.cases().filter(c => c.follow_up_date && c.follow_up_date <= today);
-    
-    // Filter by user's scope
-    if (user.role === 'cs') {
-      cases = cases.filter(c => c.source_cs_id === user.id);
-    } else if (user.role === 'leader' || user.role === 'solo') {
-      cases = cases.filter(c => 
-        c.leader_id === user.id || 
-        c.source_cs_id === user.id ||
-        (DB.user(c.source_cs_id)?.leader_id === user.id)
-      );
-    } else if (['admin', 'manager', 'kerani'].includes(user.role)) {
-      cases = cases.filter(c => c.branch_id === user.branch_id);
-    }
-    // hq sees all
+    cases = cases.filter(c => {
+      if (c.follow_up_by) return c.follow_up_by === user.id;   // new way: exact owner
+      // legacy (no owner recorded) → only the case's own CS / leader sees it
+      if (user.role === 'cs') return c.source_cs_id === user.id;
+      if (user.role === 'leader' || user.role === 'solo') return c.leader_id === user.id || c.source_cs_id === user.id;
+      return false;   // mgmt no longer auto-sees everyone's legacy reminders
+    });
     
     return cases.sort((a, b) => (a.follow_up_date || '').localeCompare(b.follow_up_date || ''));
   },
@@ -7540,6 +7546,7 @@ ${Permissions.canViewProfit(user) ? `
     if (!this.soundOn()) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();   // browsers auto-suspend until user gesture
       const t = ctx.currentTime;
       const notes = [[523.25, 0, 0.5], [659.25, 0.22, 0.5], [783.99, 0.44, 0.5], [1046.5, 0.66, 0.9], [783.99, 1.3, 0.5], [1046.5, 1.55, 1.3]];
       notes.forEach(([f, off, len]) => {
@@ -7665,16 +7672,31 @@ ${Permissions.canViewProfit(user) ? `
   
   // 🏆 Top performer for a metric within a date range
   topPerformer(metric, from, to, branchId) {
-    const users = DB.users().filter(u => !u.inactive && ['cs', 'solo'].includes(u.role) && (!branchId || u.branch_id === branchId));
+    const all = DB.cases().filter(x => x.status !== 'unqualified');
+    const inBranch = u => !branchId || u.branch_id === branchId;
     let best = null;
-    users.forEach(u => {
-      const cs = DB.cases().filter(x => x.source_cs_id === u.id && x.status !== 'unqualified');
-      let v = 0;
-      if (metric === 'ps') v = cs.filter(x => x.date_payslip >= from && x.date_payslip <= to && !x.is_duplicate).length;
-      else if (metric === 'kpi') v = cs.filter(x => x.date_submitted >= from && x.date_submitted <= to).length;
-      else if (metric === 'kfi') v = cs.filter(x => x.status === 'disbursed' && x.date_disbursed >= from && x.date_disbursed <= to).reduce((s, x) => s + (x.disburse_amount || 0), 0);
-      if (v > 0 && (!best || v > best.v)) best = { u, v };
-    });
+    if (metric === 'kpi') {
+      // KPI = submit case → credited to the LEADER who processed it (leader_id)
+      const leaders = DB.users().filter(u => !u.inactive && ['leader', 'solo'].includes(u.role) && inBranch(u));
+      leaders.forEach(u => {
+        const v = all.filter(x => x.leader_id === u.id && x.date_submitted >= from && x.date_submitted <= to).length;
+        if (v > 0 && (!best || v > best.v)) best = { u, v };
+      });
+    } else if (metric === 'ps') {
+      // Payslip = the CS/Solo who collected it (source_cs_id)
+      const users = DB.users().filter(u => !u.inactive && ['cs', 'solo'].includes(u.role) && inBranch(u));
+      users.forEach(u => {
+        const v = all.filter(x => x.source_cs_id === u.id && x.date_payslip >= from && x.date_payslip <= to && !x.is_duplicate).length;
+        if (v > 0 && (!best || v > best.v)) best = { u, v };
+      });
+    } else if (metric === 'kfi') {
+      // KFI = disbursed amount credited to the LEADER (leader_id)
+      const leaders = DB.users().filter(u => !u.inactive && ['leader', 'solo'].includes(u.role) && inBranch(u));
+      leaders.forEach(u => {
+        const v = all.filter(x => x.leader_id === u.id && x.status === 'disbursed' && x.date_disbursed >= from && x.date_disbursed <= to).reduce((s, x) => s + (x.disburse_amount || 0), 0);
+        if (v > 0 && (!best || v > best.v)) best = { u, v };
+      });
+    }
     return best;
   },
   
@@ -7787,21 +7809,45 @@ ${Permissions.canViewProfit(user) ? `
         return;
       }
       
-      // 3 · 👑 Monday champion reveal
+      // 3 · 👑 Monday champion reveal — 3 categories (Payslip / KPI / KFI)
       if (new Date().getDay() === 1) {
-        const ch = this.lastWeekChampion(Permissions.canViewAllBranches(user) ? null : user.branch_id);
-        if (ch) {
-          const isMe = ch.user.id === user.id;
-          if (isMe) this.celebrate('👑 Champion!');
-          this.showSplash(`
-            <div style="background:linear-gradient(160deg,var(--primary),var(--primary-dark));border:1.5px solid rgba(245,197,24,0.4);border-radius:24px;padding:28px 24px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,0.55);">
-              <div style="font-size:54px;animation:crownDrop 0.9s cubic-bezier(0.34,1.5,0.64,1);">👑</div>
-              <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.2em;font-weight:800;margin-top:6px;">Champion Minggu Lepas · ${ch.label}</div>
-              <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:white;margin-top:6px;">${esc(ch.user.name)}</div>
-              <div style="font-size:13px;color:var(--accent);font-weight:800;margin-top:4px;">${ch.count} payslip 🔥</div>
-              <div style="font-size:11px;color:rgba(250,247,240,0.7);margin-top:12px;font-weight:600;">${isMe ? 'Anda juara! Pertahankan takhta minggu ini 💪' : 'Minggu baru · peluang baru. Rampas takhta! ⚔️'}</div>
+        const branchId = Permissions.canViewAllBranches(user) ? null : user.branch_id;
+        // Last full week (Mon–Sun)
+        const mon = new Date();
+        const dow = mon.getDay() === 0 ? 7 : mon.getDay();
+        mon.setDate(mon.getDate() - dow + 1 - 7);
+        const ws = mon.toISOString().slice(0, 10);
+        const weD = new Date(mon); weD.setDate(weD.getDate() + 6);
+        const weS = weD.toISOString().slice(0, 10);
+        const label = mon.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' }) + '–' + weD.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' });
+        const champPs = this.topPerformer('ps', ws, weS, branchId);
+        const champKpi = this.topPerformer('kpi', ws, weS, branchId);
+        const champKfi = this.topPerformer('kfi', ws, weS, branchId);
+        
+        if (champPs || champKpi || champKfi) {
+          const iAmChamp = [champPs, champKpi, champKfi].some(ch => ch && ch.u.id === user.id);
+          if (iAmChamp) this.celebrate('👑 Champion!');
+          const podium = (ch, icon, title, isMoney) => ch ? `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(245,197,24,0.25);border-radius:14px;margin-top:8px;${ch.u.id === user.id ? 'box-shadow:0 0 0 2px var(--accent);' : ''}">
+              <div style="font-size:24px;flex-shrink:0;">${icon}</div>
+              <div style="text-align:left;flex:1;min-width:0;">
+                <div style="font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:0.12em;font-weight:800;">${title}</div>
+                <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(ch.u.name)}${ch.u.id === user.id ? ' 🫵' : ''}</div>
+              </div>
+              <div style="font-size:13px;font-weight:800;color:var(--accent);flex-shrink:0;">${isMoney ? 'RM' + fmtK(ch.v) : ch.v}</div>
             </div>
-          `, 4200);
+          ` : '';
+          this.showSplash(`
+            <div style="background:linear-gradient(160deg,var(--primary),var(--primary-dark));border:1.5px solid rgba(245,197,24,0.4);border-radius:24px;padding:26px 22px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,0.55);">
+              <div style="font-size:50px;animation:crownDrop 0.9s cubic-bezier(0.34,1.5,0.64,1);">👑</div>
+              <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.2em;font-weight:800;margin-top:4px;">Champion Minggu Lepas</div>
+              <div style="font-size:11px;color:rgba(250,247,240,0.65);font-weight:700;margin-top:2px;">${label}</div>
+              ${podium(champPs, '📥', 'Top Payslip', false)}
+              ${podium(champKpi, '📤', 'Top KPI', false)}
+              ${podium(champKfi, '💰', 'Top KFI', true)}
+              <div style="font-size:11px;color:rgba(250,247,240,0.7);margin-top:14px;font-weight:600;">${iAmChamp ? 'Anda juara! Pertahankan takhta minggu ini 💪' : 'Minggu baru · peluang baru. Rampas takhta! ⚔️'}</div>
+            </div>
+          `, 5500);
           return;
         }
       }
@@ -7913,6 +7959,8 @@ const ic = document.getElementById('f-ic').value.replace(/[^0-9]/g, '');
       sourceCS = user.id;
       leaderId = user.id;
     } else {
+      // Kerani / Manager self-sourcing → acts like SOLO (own CS + own leader)
+      // Commission: payslip via csCommission + disburse via leaderCommission (same as solo)
       sourceCS = user.id;
       leaderId = user.id;
     }
@@ -9245,6 +9293,11 @@ if (currentUser.role === 'hq' && u.role === 'admin') {
       </div>
       
       <div class="form-group">
+        <label>Nama Penuh (seperti dalam IC)</label>
+        <input type="text" id="eu-fullname" value="${esc(u.full_name || '')}" placeholder="Nama penuh rasmi">
+      </div>
+      
+      <div class="form-group">
         <label>No. IC (12 digit · birthday auto-detect)</label>
         <input type="tel" id="eu-ic" value="${esc(u.staff_ic || '')}" placeholder="e.g. 880515075123" maxlength="14"
           oninput="const d = App.icToDob(this.value); document.getElementById('eu-ic-bday').textContent = d ? '🎂 Birthday: ' + new Date(d).toLocaleDateString('en-MY', {day:'numeric', month:'long', year:'numeric'}) : '';">
@@ -9359,6 +9412,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     if (pass) updates.password = await Hash.sha256(pass);
     
     // 📇 Personal info fields
+    updates.full_name = document.getElementById('eu-fullname')?.value.trim() || null;
     updates.staff_ic = document.getElementById('eu-ic')?.value.replace(/\D/g, '') || null;
     updates.phone_personal = document.getElementById('eu-phone-p')?.value.trim() || null;
     updates.phone_company1 = document.getElementById('eu-phone-c1')?.value.trim() || null;
@@ -9572,6 +9626,10 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
         <div style="font-size: 11px; color: var(--ink-3); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em;">📇 Maklumat Peribadi (optional · boleh isi kemudian)</div>
       </div>
       <div class="form-group">
+        <label>Nama Penuh (seperti dalam IC)</label>
+        <input type="text" id="nu-fullname" placeholder="Nama penuh rasmi">
+      </div>
+      <div class="form-group">
         <label>No. IC (12 digit · birthday auto-detect)</label>
         <input type="tel" id="nu-ic" placeholder="e.g. 880515075123" maxlength="14"
           oninput="const d = App.icToDob(this.value); document.getElementById('nu-ic-bday').textContent = d ? '🎂 Birthday: ' + new Date(d).toLocaleDateString('en-MY', {day:'numeric', month:'long', year:'numeric'}) : '';">
@@ -9693,6 +9751,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
         leader_id: role === 'cs' ? leaderId : null, 
         password: hashedPass,
         // 📇 Personal info
+        full_name: document.getElementById('nu-fullname')?.value.trim() || null,
         staff_ic: document.getElementById('nu-ic')?.value.replace(/\D/g, '') || null,
         phone_personal: document.getElementById('nu-phone-p')?.value.trim() || null,
         phone_company1: document.getElementById('nu-phone-c1')?.value.trim() || null,
@@ -10532,9 +10591,9 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
 { icon: 'home', label: 'Home', screen: 'admin-dashboard' },
         { icon: 'list', label: 'Customers', screen: 'admin-customers' },
         { icon: 'trophy', label: 'Ranking', screen: 'admin-rankings' },
-        { icon: 'users', label: 'Staff', screen: 'admin-staff' },
         { icon: 'target', label: 'Daily Report', screen: 'admin-daily-report' },
         { icon: 'chat', label: 'Komuniti', screen: 'komuniti' },
+        { icon: 'users', label: 'Staff', screen: 'admin-staff' },
         ...(Permissions.canViewAllBranches(Auth.current()) ? [{ icon: 'compare', label: 'Branches', screen: 'admin-branch-compare' }] : []),
         { icon: 'tools', label: 'Tools', action: 'openAdminTools' },
         { icon: 'export', label: 'Export', screen: 'admin-export' },
@@ -11298,6 +11357,10 @@ ${(this.state.exportFrom || this.state.exportTo) ? '<div style="font-size: 11px;
         <div class="qa-card" onclick="App.exportReport('cs-activity-timeline')" style="border-left: 4px solid #EC4899;">
           <div class="qa-title">📅 Report H · CS Activity Timeline (NEW)</div>
           <div class="qa-sub">Daily calls/WA/payslip per CS · find who's consistent vs slacking</div>
+        </div>
+        <div class="qa-card" onclick="App.exportReport('staff-details')" style="border-left: 4px solid #B8860B;">
+          <div class="qa-title">📇 Report I · Staff Details (NEW)</div>
+          <div class="qa-sub">Nama penuh, IC, tarikh lahir, phone, alamat, bank, emergency contact · full HR record</div>
         </div>
       </div>
     `;
@@ -12308,6 +12371,43 @@ const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id ===
       } else {
         rows = [...sumRows, [], [], ...dailyRows];
       }
+    }
+    
+    if (type === 'staff-details') {
+      // 📇 Staff personal details — full HR record
+      let targets = DB.users().filter(u => !['admin','hq'].includes(u.role) || u.id === user.id);
+      // Actually include everyone except deactivated by default; respect branch + staff filter
+      targets = DB.users().filter(u => true);
+      if (branchFilter) targets = targets.filter(u => u.branch_id === branchFilter);
+      if (staff !== 'all') targets = targets.filter(u => u.id === staff);
+      // Sort by branch then role then name
+      const roleOrder = { admin: 0, hq: 1, manager: 2, leader: 3, solo: 4, cs: 5, kerani: 6 };
+      targets.sort((a, b) => (a.branch_id || '').localeCompare(b.branch_id || '') || (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9) || (a.name || '').localeCompare(b.name || ''));
+      
+      rows.push(['STAFF DETAILS REPORT']);
+      rows.push(['Generated:', new Date().toLocaleString('en-MY'), 'By:', user.name]);
+      rows.push(['Total staff:', targets.length]);
+      rows.push([]);
+      rows.push(['Login ID', 'Nama Penuh', 'Nama Paparan', 'Role', 'Branch', 'Team Leader', 'Status',
+                 'No. IC', 'Tarikh Lahir', 'Phone Peribadi', 'Phone Company 1', 'Phone Company 2',
+                 'Alamat', 'Bank', 'No. Akaun', 'Emergency Nama', 'Hubungan', 'Emergency Phone']);
+      targets.forEach(u => {
+        const branch = DB.branch(u.branch_id);
+        const leader = u.leader_id ? DB.user(u.leader_id) : null;
+        const dob = this.icToDob(u.staff_ic);
+        const dobStr = dob ? new Date(dob).toLocaleDateString('en-MY', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+        rows.push([
+          u.id, u.full_name || '', u.name || '', ROLE_LABELS[u.role] || u.role,
+          branch?.name || '', leader?.name || (['leader','solo'].includes(u.role) ? '(self)' : ''),
+          u.inactive ? 'Inactive' : 'Active',
+          u.staff_ic || '',   // 12-digit string
+          dobStr, u.phone_personal || '', u.phone_company1 || '', u.phone_company2 || '',
+          (u.address || '').replace(/\n/g, ' '), u.bank_name || '',
+          u.bank_account || '',
+          u.emergency_name || '', u.emergency_relation || '', u.emergency_phone || ''
+        ]);
+      });
+      filename = `awara_staff_details${branchFilter ? '_' + branchFilter : ''}.csv`;
     }
     
     if (rows.length <= 4) { toast('No data for this filter'); return; }
@@ -13518,8 +13618,8 @@ removeListItem(key, idx) {
   
     renderFab(currentScreen) {
     const user = Auth.current();
-    // Hide FAB for Boss, HQ, Admin (kerani) — but allow Manager (per branch needs)
-    if (!user || ['admin', 'hq', 'kerani'].includes(user.role)) return '';
+    // Hide FAB for Boss, HQ — Manager & Kerani allowed (kerani can self-source cases too)
+    if (!user || ['admin', 'hq'].includes(user.role)) return '';
     const noFab = ['add-case', 'login'];
     if (noFab.includes(currentScreen)) return '';
     return `<button class="fab" onclick="App.goto('add-case')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>`;
