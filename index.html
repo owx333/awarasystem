@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AWARA Sdn Bhd · GOAL MANAGEMENT SYSTEM</title>
+<title>MANI Goal System · GOAL MANAGEMENT SYSTEM</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230F5132'/%3E%3Ccircle cx='50' cy='50' r='36' fill='none' stroke='%23F5C518' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='24' fill='none' stroke='%23F5C518' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23F5C518'/%3E%3Cline x1='15' y1='50' x2='85' y2='50' stroke='%23F5C518' stroke-width='2'/%3E%3Cline x1='50' y1='15' x2='50' y2='85' stroke='%23F5C518' stroke-width='2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -384,17 +384,17 @@ async batchSet(collectionName, items, keyField = 'id') {
 </script>
 <style>
 :root {
-  --primary: #0F5132; --primary-light: #1B6B43; --primary-dark: #084025;
-  --primary-glow: rgba(15, 81, 50, 0.08);
+  --primary: #1B2C74; --primary-light: #2C41A0; --primary-dark: #101D52;
+  --primary-glow: rgba(27, 44, 116, 0.08);
   --accent: #F5C518; --accent-light: #FFD93D; --accent-dark: #D4A50E; --accent-deep: #B8900C;
   --cream: #FAF7F0; --cream-2: #F4EFE3; --cream-3: #ECE5D2;
   --ink: #1A1A1A; --ink-2: #4A4A4A; --ink-3: #8A8A8A;
-  --border: rgba(15, 81, 50, 0.12); --border-2: rgba(15, 81, 50, 0.06);
+  --border: rgba(27, 44, 116, 0.12); --border-2: rgba(27, 44, 116, 0.06);
   --success: #2D7A50; --success-bg: #E3F0E8;
   --warning: #D89B36; --warning-bg: #FBF1DC;
   --danger: #B8423A; --danger-bg: #F8E3E1;
   --info: #3B6F9C; --info-bg: #E1ECF6;
-  --shadow-md: 0 4px 20px rgba(15, 81, 50, 0.08);
+  --shadow-md: 0 4px 20px rgba(27, 44, 116, 0.08);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { overscroll-behavior: none; }
@@ -764,7 +764,7 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
   }
   
   .bottom-nav::before {
-    content: 'AWARA';
+    content: 'MANI';
     font-family: 'Archivo Black', sans-serif;
     color: var(--accent);
     background: var(--primary);
@@ -913,7 +913,7 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 @keyframes heroIn { from { opacity: 0; transform: translateY(26px) scale(0.97); } to { opacity: 1; transform: none; } }
 
 .login-form { position: relative; z-index: 2; background: rgba(255,255,255,0.06); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(245,197,24,0.18); border-radius: 22px; padding: 26px 22px 22px; margin: 0 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1); animation: heroIn 0.9s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
-.login-form .input-group input { background: rgba(8,64,37,0.45); border: 1px solid rgba(245,197,24,0.16); transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }
+.login-form .input-group input { background: rgba(16,29,82,0.45); border: 1px solid rgba(245,197,24,0.16); transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }
 .login-form .input-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(245,197,24,0.16), 0 8px 24px rgba(0,0,0,0.25); transform: translateY(-1px); }
 .login-btn { position: relative; overflow: hidden; transition: transform 0.18s, box-shadow 0.18s; }
 .login-btn::after { content: ''; position: absolute; top: 0; left: -80%; width: 50%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent); transform: skewX(-22deg); animation: btnSheen 3.6s ease-in-out infinite; }
@@ -923,35 +923,35 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 
 /* ── Glass Modals ── */
 .modal-overlay { backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1); }
-.modal { backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border: 1px solid rgba(255,255,255,0.65); box-shadow: 0 30px 80px rgba(8,64,37,0.3), inset 0 1px 0 rgba(255,255,255,0.8); animation: modalPop 0.32s cubic-bezier(0.34,1.4,0.64,1) both; }
+.modal { backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border: 1px solid rgba(255,255,255,0.65); box-shadow: 0 30px 80px rgba(16,29,82,0.3), inset 0 1px 0 rgba(255,255,255,0.8); animation: modalPop 0.32s cubic-bezier(0.34,1.4,0.64,1) both; }
 @keyframes modalPop { from { opacity: 0; transform: translateY(22px) scale(0.96); } to { opacity: 1; transform: none; } }
 
 /* ── KPI cards · glass polish + hover lift + staggered entrance ── */
-.kpi-card { position: relative; overflow: hidden; transition: transform 0.22s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.22s; border: 1px solid rgba(255,255,255,0.55); box-shadow: 0 6px 22px rgba(15,81,50,0.07), inset 0 1px 0 rgba(255,255,255,0.7); animation: cardRise 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.kpi-card { position: relative; overflow: hidden; transition: transform 0.22s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.22s; border: 1px solid rgba(255,255,255,0.55); box-shadow: 0 6px 22px rgba(27,44,116,0.07), inset 0 1px 0 rgba(255,255,255,0.7); animation: cardRise 0.5s cubic-bezier(0.22,1,0.36,1) both; }
 .kpi-grid .kpi-card:nth-child(1) { animation-delay: 0.03s; } .kpi-grid .kpi-card:nth-child(2) { animation-delay: 0.08s; }
 .kpi-grid .kpi-card:nth-child(3) { animation-delay: 0.13s; } .kpi-grid .kpi-card:nth-child(4) { animation-delay: 0.18s; }
 .kpi-grid .kpi-card:nth-child(5) { animation-delay: 0.23s; } .kpi-grid .kpi-card:nth-child(6) { animation-delay: 0.28s; }
 .kpi-card:active { transform: scale(0.985); }
-@media (hover: hover) { .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(15,81,50,0.14); } }
+@media (hover: hover) { .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(27,44,116,0.14); } }
 .kpi-card.featured::before { content: ''; position: absolute; top: 0; left: -120%; width: 60%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,0.14), transparent); transform: skewX(-20deg); animation: cardSheen 6s 1.2s ease-in-out infinite; pointer-events: none; }
 @keyframes cardSheen { 0%, 70% { left: -120%; } 100% { left: 150%; } }
 @keyframes cardRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
 /* ── Cards / chips / buttons micro-interactions ── */
 .case-card, .qa-card { transition: transform 0.18s, box-shadow 0.18s; }
-@media (hover: hover) { .case-card:hover, .qa-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(15,81,50,0.1); } }
+@media (hover: hover) { .case-card:hover, .qa-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(27,44,116,0.1); } }
 .case-card:active { transform: scale(0.99); }
 .filter-chip { transition: all 0.18s cubic-bezier(0.34,1.3,0.64,1); }
 .filter-chip:active { transform: scale(0.94); }
-.filter-chip.active { box-shadow: 0 4px 14px rgba(15,81,50,0.22); }
+.filter-chip.active { box-shadow: 0 4px 14px rgba(27,44,116,0.22); }
 .submit-btn, .btn-secondary { transition: transform 0.15s, box-shadow 0.15s, filter 0.15s; }
 .submit-btn:active, .btn-secondary:active { transform: scale(0.98); }
-@media (hover: hover) { .submit-btn:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(15,81,50,0.25); } }
+@media (hover: hover) { .submit-btn:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(27,44,116,0.25); } }
 .screen.active { animation: screenFade 0.28s ease both; }
 @keyframes screenFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 /* ── SVG Trend Chart ── */
-.trend-chart-card { margin: 4px 20px 14px; background: linear-gradient(160deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 18px; padding: 18px 16px 12px; position: relative; overflow: hidden; box-shadow: 0 14px 38px rgba(8,64,37,0.3); animation: cardRise 0.5s 0.2s both; }
+.trend-chart-card { margin: 4px 20px 14px; background: linear-gradient(160deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 18px; padding: 18px 16px 12px; position: relative; overflow: hidden; box-shadow: 0 14px 38px rgba(16,29,82,0.3); animation: cardRise 0.5s 0.2s both; }
 .trend-chart-card::before { content: ""; position: absolute; top: -60px; right: -60px; width: 190px; height: 190px; background: radial-gradient(circle, rgba(245,197,24,0.22) 0%, transparent 65%); }
 .trend-bar { animation: barGrow 0.85s cubic-bezier(0.22,1,0.36,1) both; transform-origin: bottom; }
 @keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
@@ -972,10 +972,10 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 /* ═══ ✨ WOW PHASE 2 · post-login polish ═══ */
 
 /* Top bar · subtle gradient + gold hairline */
-.top-bar { background: linear-gradient(180deg, #FDFBF6 0%, var(--cream) 100%); border-bottom: 1px solid var(--border-2); box-shadow: 0 1px 0 rgba(245,197,24,0.18), 0 6px 18px rgba(15,81,50,0.04); }
-.avatar { position: relative; box-shadow: 0 0 0 2px rgba(245,197,24,0.35), 0 4px 12px rgba(15,81,50,0.18); transition: transform 0.18s; }
+.top-bar { background: linear-gradient(180deg, #FDFBF6 0%, var(--cream) 100%); border-bottom: 1px solid var(--border-2); box-shadow: 0 1px 0 rgba(245,197,24,0.18), 0 6px 18px rgba(27,44,116,0.04); }
+.avatar { position: relative; box-shadow: 0 0 0 2px rgba(245,197,24,0.35), 0 4px 12px rgba(27,44,116,0.18); transition: transform 0.18s; }
 .avatar:active { transform: scale(0.92); }
-.greeting .name em { background: linear-gradient(100deg, var(--primary), #2E8B57 60%, var(--primary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.greeting .name em { background: linear-gradient(100deg, var(--primary), #3D55B8 60%, var(--primary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
 /* Month pill · live gold accent */
 .month-pill { background: linear-gradient(120deg, var(--cream-2), #FBF6E8); border: 1px solid rgba(212,165,14,0.25); box-shadow: 0 2px 8px rgba(212,165,14,0.08); }
@@ -983,12 +983,12 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 
 /* Bottom nav · floating glass pill */
 @media (max-width: 767px) {
-  .bottom-nav { left: 50%; transform: translateX(-50%); bottom: 10px; width: calc(100% - 24px); max-width: 456px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.7); background: rgba(250,247,240,0.86); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); box-shadow: 0 12px 36px rgba(8,64,37,0.18), inset 0 1px 0 rgba(255,255,255,0.85); padding: 8px 10px 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; justify-content: flex-start; }
+  .bottom-nav { left: 50%; transform: translateX(-50%); bottom: 10px; width: calc(100% - 24px); max-width: 456px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.7); background: rgba(250,247,240,0.86); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); box-shadow: 0 12px 36px rgba(16,29,82,0.18), inset 0 1px 0 rgba(255,255,255,0.85); padding: 8px 10px 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; justify-content: flex-start; }
   .bottom-nav::-webkit-scrollbar { display: none; }
   .bottom-nav .nav-item { flex: 1 0 auto; min-width: 56px; }
 }
 .nav-item .icon { transition: all 0.22s cubic-bezier(0.34,1.5,0.64,1); }
-.nav-item.active .icon { transform: translateY(-2px) scale(1.08); box-shadow: 0 6px 16px rgba(15,81,50,0.3); }
+.nav-item.active .icon { transform: translateY(-2px) scale(1.08); box-shadow: 0 6px 16px rgba(27,44,116,0.3); }
 .nav-item.active { position: relative; }
 .nav-item.active::after { content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent-deep); box-shadow: 0 0 8px rgba(212,165,14,0.8); }
 .nav-item:active .icon { transform: scale(0.88); }
@@ -999,7 +999,7 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 @keyframes fabBreathe { 0%,100% { box-shadow: 0 8px 24px rgba(245,197,24,0.5), 0 0 0 0 rgba(245,197,24,0.3); } 50% { box-shadow: 0 10px 30px rgba(245,197,24,0.6), 0 0 0 9px rgba(245,197,24,0); } }
 
 /* Toast · dark glass + gold edge + spring */
-.toast { background: rgba(10,52,33,0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(245,197,24,0.35); border-left: 3px solid var(--accent); box-shadow: 0 14px 40px rgba(0,0,0,0.4); animation: toastSpring 0.4s cubic-bezier(0.34,1.5,0.64,1); }
+.toast { background: rgba(13,22,56,0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(245,197,24,0.35); border-left: 3px solid var(--accent); box-shadow: 0 14px 40px rgba(0,0,0,0.4); animation: toastSpring 0.4s cubic-bezier(0.34,1.5,0.64,1); }
 @keyframes toastSpring { from { opacity: 0; transform: translateX(-50%) translateY(18px) scale(0.92); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
 
 /* Targets card · animated gold corner glow */
@@ -1033,6 +1033,8 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 @keyframes heartUp { 0% { opacity: 0; transform: translateY(0) translateX(0) scale(0.6); } 10% { opacity: 1; } 100% { opacity: 0; transform: translateY(-105vh) translateX(var(--hdrift, 0px)) scale(1.15) rotate(12deg); } }
 .feed-copy { display: inline-flex; align-items: center; gap: 14px; padding-right: 28px; }
 
+
+.login-logo-img { width: min(250px, 62vw); height: auto; display: block; margin: 0 auto; filter: drop-shadow(0 8px 28px rgba(0,0,0,0.4)); animation: heroIn 0.9s cubic-bezier(0.22,1,0.36,1) both; }
 </style>
 </head>
 <body>
@@ -1050,8 +1052,8 @@ body.app-ready #app { opacity: 1; transition: opacity 0.2s; }
 
 <script>
 /* ============================================================
-   AWARA CS MANAGEMENT SYSTEM
-   Built for AWARA SDN BHD
+   MANI CS MANAGEMENT SYSTEM
+   Built for MANI SDN BHD
    Version 1.0 · Working demo with localStorage backend
    For production: replace DB.* with Firebase calls
    ============================================================ */
@@ -1119,7 +1121,7 @@ const DEFAULT_SETTINGS = {
       { min: 270000, rate: 1.1 }
     ],
     // Submit-count based LUMP SUM bonus for Solo ONLY (rejected cases excluded from count)
-    // TL does NOT get this - they only have KFI % commission + package bonuses
+    // TL does NOT get this - they only have Com % commission + package bonuses
     leader_submit: [],  // empty - TL does not earn submit lump bonus
     solo_submit: [
       { min: 7, lump: 140 },
@@ -1170,7 +1172,7 @@ const DEFAULT_SETTINGS = {
     { m: 144, l: '12 tahun' }
   ],
   branding: {
-    company_name: 'AWARA',
+    company_name: 'MANI',
     tagline: 'Sdn Bhd',
     primary_color: '#0F5132',
     accent_color: '#F5C518'
@@ -1182,8 +1184,8 @@ let LOAN_AMOUNTS = DEFAULT_SETTINGS.loan_amounts.slice();
 let TENORS = DEFAULT_SETTINGS.tenors.slice();
 let CS_PAYSLIP_TIERS = [];
 let CS_SUBMIT_TIERS = [];
-let LEADER_KFI_TIERS = [];
-let SOLO_KFI_TIERS = [];
+let LEADER_Com_TIERS = [];
+let SOLO_Com_TIERS = [];
 let LEADER_SUBMIT_TIERS = [];  // lump-sum bonus by submit count (item 3)
 let SOLO_SUBMIT_TIERS = [];     // lump-sum bonus by submit count (item 4)
 let YTAA_KOMUJA_BONUS_TEAM = DEFAULT_SETTINGS.commission.bonus_team;
@@ -1217,10 +1219,10 @@ function refreshSettings() {
     CS_SUBMIT_TIERS = sortDesc(s.commission.cs_submit).map(t => ({ ...t, label: buildTierLabel(t, 'submit') }));
   }
   if (s.commission.leader_kfi?.length) {
-    LEADER_KFI_TIERS = sortDesc(s.commission.leader_kfi).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
+    LEADER_Com_TIERS = sortDesc(s.commission.leader_kfi).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
   }
   if (s.commission.solo_kfi?.length) {
-    SOLO_KFI_TIERS = sortDesc(s.commission.solo_kfi).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
+    SOLO_Com_TIERS = sortDesc(s.commission.solo_kfi).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
   }
   if (s.commission.leader_submit?.length) {
     LEADER_SUBMIT_TIERS = sortDesc(s.commission.leader_submit).map(t => ({ ...t, label: buildTierLabel(t, 'submit') }));
@@ -1251,8 +1253,8 @@ function refreshSettings() {
 // Initialize defaults at load (will be overridden by refreshSettings after DB ready)
 CS_PAYSLIP_TIERS = DEFAULT_SETTINGS.commission.cs_payslip.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'payslip') }));
 CS_SUBMIT_TIERS = DEFAULT_SETTINGS.commission.cs_submit.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'submit') }));
-LEADER_KFI_TIERS = DEFAULT_SETTINGS.commission.leader_kfi.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
-SOLO_KFI_TIERS = DEFAULT_SETTINGS.commission.solo_kfi.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
+LEADER_Com_TIERS = DEFAULT_SETTINGS.commission.leader_kfi.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
+SOLO_Com_TIERS = DEFAULT_SETTINGS.commission.solo_kfi.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'kfi') }));
 LEADER_SUBMIT_TIERS = DEFAULT_SETTINGS.commission.leader_submit.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'submit') }));
 SOLO_SUBMIT_TIERS = DEFAULT_SETTINGS.commission.solo_submit.slice().sort((a,b) => b.min - a.min).map(t => ({ ...t, label: buildTierLabel(t, 'submit') }));
 
@@ -1419,11 +1421,11 @@ function generateSeedCases() {
   ];
   
   const distribution = [
-    // Faizah team (hits Tier 1 KFI)
+    // Faizah team (hits Tier 1 Com)
     { cs: 'anis', leader: 'faizah', count: 54, contacted: 30, proposed: 18, submitted: 10, approved: 7, disbursed: 4, pending: 2 },
     { cs: 'hidayah', leader: 'faizah', count: 14, contacted: 9, proposed: 6, submitted: 4, approved: 3, disbursed: 2, pending: 1 },
     { cs: 'faizah', leader: 'faizah', count: 19, contacted: 12, proposed: 8, submitted: 5, approved: 4, disbursed: 3, pending: 0 },
-    // Elly team (hits Tier 2 KFI)
+    // Elly team (hits Tier 2 Com)
     { cs: 'tika', leader: 'elly', count: 16, contacted: 8, proposed: 5, submitted: 3, approved: 2, disbursed: 1, pending: 1 },
     { cs: 'atikah', leader: 'elly', count: 18, contacted: 10, proposed: 6, submitted: 4, approved: 3, disbursed: 2, pending: 0 },
     { cs: 'elly', leader: 'elly', count: 26, contacted: 15, proposed: 11, submitted: 9, approved: 8, disbursed: 7, pending: 1 },
@@ -3115,7 +3117,7 @@ const Logic = {
     );
   },
   
-  // Cases disbursed in current month (by date_disbursed) - KFI counts here
+  // Cases disbursed in current month (by date_disbursed) - Com counts here
   monthlyDisburseCases(opts = {}) {
     const ym = opts.ym || this.currentMonthYM();
     return this.allCases(opts).filter(c => 
@@ -3226,7 +3228,7 @@ const Logic = {
     const submitted = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').length;
     const disbursed = disburseCases.length;
     const newCount = validPayslip.filter(c => c.status === 'new').length;
-    // KFI is on the disbursing leader (not original CS), so include all disbursed by this leader
+    // Com is on the disbursing leader (not original CS), so include all disbursed by this leader
     const kfiAmount = disburseCases.reduce((s,c) => s + (c.disburse_amount || 0), 0);
     const loanSubmission = submitCases.filter(c => c.status !== 'rejected' && c.status !== 'on_hold' && c.status !== 'unqualified').reduce((s,c) => s + (c.loan_amount || 0), 0);
     const rejected = rejectCases.filter(c => !c.is_duplicate).length;
@@ -3305,9 +3307,9 @@ const Logic = {
   // Leader commission - based on DISBURSED amount in current month (cross-month correct)
   leaderCommission(leaderId, ym = null) {
     const stats = this.leaderStats(leaderId, ym);
-    const tiers = stats.isSolo ? SOLO_KFI_TIERS : LEADER_KFI_TIERS;
+    const tiers = stats.isSolo ? SOLO_Com_TIERS : LEADER_Com_TIERS;
     
-    // KFI commission (% of disburse)
+    // Com commission (% of disburse)
     let rate = 0, tier = null;
     for (const t of tiers) {
       if (stats.kfiAmount >= t.min) { rate = t.rate; tier = t; break; }
@@ -3991,9 +3993,8 @@ this.bindCommonEvents();
         }).join('')}</div>
         <div class="login-grid-glow"></div>
         <div class="login-header">
-          <div class="login-awara">AWARA</div>
-          <div class="login-tagline">Sdn Bhd</div>
-          <div class="login-sub">GOAL MANAGEMENT SYSTEM</div>
+          <img class="login-logo-img" src="data:image/png;base64,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" alt="MANI">
+          <div class="login-sub" style="margin-top:8px;">GOAL SYSTEM</div>
         </div>
         <form class="login-form" onsubmit="event.preventDefault(); App.doLogin();">
           <div class="input-group">
@@ -4008,7 +4009,7 @@ this.bindCommonEvents();
           <div class="login-error" id="login-error"></div>
         </form>
         <div class="login-footer">
-          AWARA Sdn Bhd · Malaysia${isDev ? '<br><span style="opacity:0.5;">DEV: ANIS / FAIZAH / WILSON / password 1234</span>' : ''}
+          MANI Goal System · Malaysia${isDev ? '<br><span style="opacity:0.5;">DEV: ANIS / FAIZAH / WILSON / password 1234</span>' : ''}
         </div>
       </section>
     `;
@@ -4088,7 +4089,7 @@ this.bindCommonEvents();
       <div class="top-bar">
         <div class="top-bar-row">
           <div class="logo">
-            <div class="awara-mark">AWARA</div>
+            <div class="awara-mark">MANI</div>
             <div class="logo-text"><span class="sdn">${title || 'Sdn Bhd'}</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -4191,7 +4192,7 @@ this.bindCommonEvents();
         const streak = this.computeStreak(user.id);
         const badges = this.getBadges(user.id);
         return `
-          <div style="margin: 14px 20px 0; padding: 16px 18px; background: linear-gradient(135deg, #0E4D2F 0%, #1B6B43 55%, #2E8B57 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 14px 36px rgba(8,64,37,0.32); animation: cardRise 0.5s 0.05s both;">
+          <div style="margin: 14px 20px 0; padding: 16px 18px; background: linear-gradient(135deg, #14235E 0%, #2C41A0 55%, #3D55B8 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 14px 36px rgba(16,29,82,0.32); animation: cardRise 0.5s 0.05s both;">
             <div style="position:absolute;top:-46px;right:-46px;width:150px;height:150px;background:radial-gradient(circle, rgba(245,197,24,0.28) 0%, transparent 65%);animation:orbFloat 8s ease-in-out infinite;"></div>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:10px;">
               <div style="min-width:0;">
@@ -4242,7 +4243,7 @@ this.bindCommonEvents();
         const hit = kpi >= target;
         const R = 42, C = 2 * Math.PI * R;
         return `
-          <div style="margin: 4px 20px 14px; padding: 16px; background: ${hit ? 'linear-gradient(150deg, #B8860B, #DAA520 60%, #F5C518)' : 'linear-gradient(160deg, var(--primary), var(--primary-dark))'}; border-radius: 18px; display: flex; align-items: center; gap: 16px; box-shadow: 0 12px 32px ${hit ? 'rgba(218,165,32,0.4)' : 'rgba(8,64,37,0.28)'}; position: relative; overflow: hidden; animation: cardRise 0.5s 0.15s both;">
+          <div style="margin: 4px 20px 14px; padding: 16px; background: ${hit ? 'linear-gradient(150deg, #B8860B, #DAA520 60%, #F5C518)' : 'linear-gradient(160deg, var(--primary), var(--primary-dark))'}; border-radius: 18px; display: flex; align-items: center; gap: 16px; box-shadow: 0 12px 32px ${hit ? 'rgba(218,165,32,0.4)' : 'rgba(16,29,82,0.28)'}; position: relative; overflow: hidden; animation: cardRise 0.5s 0.15s both;">
             <div style="position:absolute;top:-50px;right:-50px;width:160px;height:160px;background:radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 65%);"></div>
             <svg width="100" height="100" viewBox="0 0 100 100" style="flex-shrink:0;">
               <circle cx="50" cy="50" r="${R}" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="9"/>
@@ -4272,7 +4273,7 @@ this.bindCommonEvents();
       </div>
       
       <div class="info-banner">
-        <strong>Note:</strong> KPI & KFI dikira pada Team Leader (${teamLeader?.name || '—'}). Anda dapat komisen untuk setiap payslip yang disbursed.
+        <strong>Note:</strong> KPI & Com dikira pada Team Leader (${teamLeader?.name || '—'}). Anda dapat komisen untuk setiap payslip yang disbursed.
       </div>
       
       ${(() => {
@@ -4622,14 +4623,14 @@ ${c.is_duplicate ? (() => {
         let body = '';
         if (tier === 1) {
           // Minimal: leader name only, no customer detail link
-          body = `<strong>⚠ Duplicate Case.</strong> Original by Leader <strong>${originalLeader?.name || '—'}</strong>'s team. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/KFI tetap dikira kalau submit/disburse</span>`;
+          body = `<strong>⚠ Duplicate Case.</strong> Original by Leader <strong>${originalLeader?.name || '—'}</strong>'s team. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/Com tetap dikira kalau submit/disburse</span>`;
         } else if (tier === 2) {
           // Manager: team info + view original link
-        body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong>'s team. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/KFI dikira kalau submit/disburse</span>
+        body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong>'s team. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/Com dikira kalau submit/disburse</span>
             <br><a onclick="App.viewOriginalDuplicate('${c.id}')" style="color: var(--accent-deep); font-weight: 700; cursor: pointer; text-decoration: underline;">View Original Case →</a>`;
         } else {
           // Boss/HQ: full details + branch info
-          body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong> · Branch <strong>${originalBranch?.name || '—'}</strong>. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/KFI dikira kalau submit/disburse</span>
+          body = `<strong>⚠ Duplicate Case.</strong> Original by CS <strong>${originalCs?.name || '—'}</strong> · Leader <strong>${originalLeader?.name || '—'}</strong> · Branch <strong>${originalBranch?.name || '—'}</strong>. <span style="font-size:11px;">📋 Tidak dikira payslip · ✅ KPI/Com dikira kalau submit/disburse</span>
             <br><a onclick="App.viewOriginalDuplicate('${c.id}')" style="color: var(--accent-deep); font-weight: 700; cursor: pointer; text-decoration: underline;">View Original Case →</a>`;
         }
         
@@ -4921,7 +4922,7 @@ ${stage2Done && canProcessStage2 ? (
     const c = DB.caseById(caseId);
     if (!c) return;
     
-    if (!confirm(`Unmark "${esc(c.customer_name)}" sebagai duplicate?\n\nCase ini akan dikira sebagai original (counted toward KPI/KFI).`)) return;
+    if (!confirm(`Unmark "${esc(c.customer_name)}" sebagai duplicate?\n\nCase ini akan dikira sebagai original (counted toward KPI/Com).`)) return;
     
     DB.updateCase(caseId, { 
       is_duplicate: false, 
@@ -4948,7 +4949,7 @@ ${stage2Done && canProcessStage2 ? (
     
     if (!earlier) { toast('Tiada earlier case dengan IC sama untuk reference'); return; }
     
-    if (!confirm(`Mark "${esc(c.customer_name)}" (${c.date_payslip}) sebagai DUPLICATE?\n\nOriginal akan jadi: ${earlier.date_payslip} (${DB.user(earlier.source_cs_id)?.name || '—'})\n\nCase ini tidak akan dikira dalam KPI/KFI/profit.`)) return;
+    if (!confirm(`Mark "${esc(c.customer_name)}" (${c.date_payslip}) sebagai DUPLICATE?\n\nOriginal akan jadi: ${earlier.date_payslip} (${DB.user(earlier.source_cs_id)?.name || '—'})\n\nCase ini tidak akan dikira dalam KPI/Com/profit.`)) return;
     
     DB.updateCase(caseId, { 
       is_duplicate: true,
@@ -5839,11 +5840,11 @@ ${stage2Done && canProcessStage2 ? (
       
       ${isReEdit ? `
         <div class="info-banner" style="margin: 0 0 14px; background: #FEF3C7; border-left-color: #F59E0B; color: #92400E;">
-          <strong>⚠ Editing disbursed case.</strong> Changes will recalculate KFI, profit & commissions.
+          <strong>⚠ Editing disbursed case.</strong> Changes will recalculate Com, profit & commissions.
         </div>
       ` : `
         <div class="info-banner success" style="margin: 0 0 14px;">
-          <strong>KFI counts in disburse month.</strong> Submit bulan ini, disburse bulan depan, KFI tetap dikira pada Leader.
+          <strong>Com counts in disburse month.</strong> Submit bulan ini, disburse bulan depan, Com tetap dikira pada Leader.
         </div>
       `}
       
@@ -5878,7 +5879,7 @@ ${stage2Done && canProcessStage2 ? (
       date_disbursed: date
     });
     hideModal();
-    toast(wasDisbursed ? 'Updated · RM ' + fmt(amount) + ' · KFI/profit recalculated' : 'Disbursed · RM ' + fmt(amount) + ' · KFI credited');
+    toast(wasDisbursed ? 'Updated · RM ' + fmt(amount) + ' · Com/profit recalculated' : 'Disbursed · RM ' + fmt(amount) + ' · Com credited');
     if (!wasDisbursed) this.celebrate('RM ' + fmt(amount) + ' Disbursed!');
     this.render();
   },
@@ -6122,7 +6123,7 @@ ${stage2Done && canProcessStage2 ? (
         const streak = this.computeStreak(user.id);
         const badges = this.getBadges(user.id);
         return `
-          <div style="margin: 14px 20px 0; padding: 16px 18px; background: linear-gradient(135deg, #0E4D2F 0%, #1B6B43 55%, #2E8B57 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 14px 36px rgba(8,64,37,0.32); animation: cardRise 0.5s 0.05s both;">
+          <div style="margin: 14px 20px 0; padding: 16px 18px; background: linear-gradient(135deg, #14235E 0%, #2C41A0 55%, #3D55B8 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 14px 36px rgba(16,29,82,0.32); animation: cardRise 0.5s 0.05s both;">
             <div style="position:absolute;top:-46px;right:-46px;width:150px;height:150px;background:radial-gradient(circle, rgba(245,197,24,0.28) 0%, transparent 65%);animation:orbFloat 8s ease-in-out infinite;"></div>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:10px;">
               <div style="min-width:0;">
@@ -6144,7 +6145,7 @@ ${stage2Done && canProcessStage2 ? (
       })()}
       <div class="kpi-grid">
         <div class="kpi-card featured">
-          <div class="label">Team KFI · ${user.role === 'solo' ? 'Solo' : 'Total'}</div>
+          <div class="label">Team Com · ${user.role === 'solo' ? 'Solo' : 'Total'}</div>
           <div class="value"><span class="currency">RM</span>${fmtK(stats.kfiAmount)}</div>
           <div class="sub">${stats.disbursed} disbursed · ${stats.teamMembers.length + 1} members</div>
         </div>
@@ -6268,7 +6269,7 @@ ${stage2Done && canProcessStage2 ? (
           <div class="team-stats">
             <div class="team-stat"><div class="lbl">Payslip</div><div class="val">${m.stats.total}</div></div>
             <div class="team-stat"><div class="lbl">Submit</div><div class="val">${m.stats.submitted}</div></div>
-            <div class="team-stat"><div class="lbl">KFI</div><div class="val">${fmtK(m.stats.disburseAmount)}</div></div>
+            <div class="team-stat"><div class="lbl">Com</div><div class="val">${fmtK(m.stats.disburseAmount)}</div></div>
           </div>
         </div>
       `).join('')}
@@ -6284,17 +6285,17 @@ ${stage2Done && canProcessStage2 ? (
     
     return this.topBar(user, 'Commission Report') + `
       <div class="info-banner">
-        <strong>PENTING:</strong> KFI dikira berdasarkan jumlah DISBURSE sahaja. Approved tapi belum disburse TIDAK dikira.
+        <strong>PENTING:</strong> Com dikira berdasarkan jumlah DISBURSE sahaja. Approved tapi belum disburse TIDAK dikira.
       </div>
       
-      <div class="section-header"><div class="section-title">KFI Komisen ${isSolo ? '(Solo)' : '(Team)'}</div></div>
+      <div class="section-header"><div class="section-title">Com Komisen ${isSolo ? '(Solo)' : '(Team)'}</div></div>
       
       <div class="commission-card ${com.kfiCom > 0 ? 'earned' : ''}">
         <div class="com-header">
           <div class="com-title">Semua Koperasi</div>
           <div class="com-amount"><span class="unit">RM</span>${fmt(com.kfiCom)}</div>
         </div>
-        <div class="com-sub">${isSolo ? 'Solo' : 'Team'} KFI: ${fmtRM(stats.kfiAmount)} ${com.tier ? `· tier +${com.rate}%` : '· belum capai minimum'}</div>
+        <div class="com-sub">${isSolo ? 'Solo' : 'Team'} Com: ${fmtRM(stats.kfiAmount)} ${com.tier ? `· tier +${com.rate}%` : '· belum capai minimum'}</div>
         ${com.nextTier ? `<div class="com-progress"><strong>RM ${fmt(com.nextTier.need)} lagi</strong> untuk capai ${com.nextTier.label} · +${com.nextTier.rate}%</div>` : ''}
         <div class="tier-table">
           ${tiers.slice().reverse().map(t => `
@@ -6357,7 +6358,7 @@ ${stage2Done && canProcessStage2 ? (
       <div class="stats-list">
         <div class="stat-row"><span class="stat-label">Total KPI</span><span class="stat-value">${stats.kpi}</span></div>
         <div class="stat-row"><span class="stat-label">Loan Submission</span><span class="stat-value"><span class="unit">RM</span>${fmt(stats.loanSubmission)}</span></div>
-        <div class="stat-row"><span class="stat-label">KFI Disbursed</span><span class="stat-value"><span class="unit">RM</span>${fmt(stats.kfiAmount)}</span></div>
+        <div class="stat-row"><span class="stat-label">Com Disbursed</span><span class="stat-value"><span class="unit">RM</span>${fmt(stats.kfiAmount)}</span></div>
         <div class="stat-row danger"><span class="stat-label">Rejected / Lost</span><span class="stat-value"><span class="unit">RM</span>${fmt(stats.lostAmount)}</span></div>
       </div>
     `;
@@ -6442,7 +6443,7 @@ ${stage2Done && canProcessStage2 ? (
           <div class="sub">${stats.submitted} cases${branchBreakdown ? ' · All Branches' : ''}</div>
         </div>
         <div class="kpi-card">
-          <div class="label">KFI Disbursed</div>
+          <div class="label">Com Disbursed</div>
           <div class="value"><span class="currency">RM</span>${fmtK(stats.kfiAmount)}</div>
           <div class="sub">actual disburse</div>
         </div>
@@ -6494,7 +6495,7 @@ ${Permissions.canViewProfit(user) ? `
               </div>
               <div>
                 <div style="font-weight: 800; font-size: 15px; color: var(--primary);">RM ${fmtK(s.kfiAmount)}</div>
-                <div style="font-size: 9px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">KFI</div>
+                <div style="font-size: 9px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Com</div>
               </div>
               ${Permissions.canViewProfit(user) ? `
                 <div>
@@ -6528,8 +6529,8 @@ ${Permissions.canViewProfit(user) ? `
           <div class="stat">${awards.topKpi?.kpi || 0}</div>
         </div>
         <div class="award-card">
-          <div class="trophy">KFI</div>
-          <div class="category">Top KFI</div>
+          <div class="trophy">Com</div>
+          <div class="category">Top Com</div>
           <div class="winner">${awards.topKfi?.user.name || '—'}</div>
           <div class="winner-role">${ROLE_LABELS[awards.topKfi?.user.role] || ''}</div>
           <div class="stat">${fmtK(awards.topKfi?.kfiAmount || 0)}<span class="unit">k</span></div>
@@ -6550,7 +6551,7 @@ ${Permissions.canViewProfit(user) ? `
           </div>
           <div class="rank-stats">
             <div class="big">RM ${fmtK(t.kfiAmount)}</div>
-            <div class="small">KFI · ${t.kpi} KPI</div>
+            <div class="small">Com · ${t.kpi} KPI</div>
           </div>
         </div>
       `).join('')}
@@ -6586,7 +6587,7 @@ ${Permissions.canViewProfit(user) ? `
         </div>
         <div class="qa-card" onclick="App.goto('admin-weekly')">
           <div class="qa-title">Weekly Team Report</div>
-          <div class="qa-sub">KFI · Calling · Payslip · Closing · Potential</div>
+          <div class="qa-sub">Com · Calling · Payslip · Closing · Potential</div>
         </div>
         <div class="qa-card" onclick="App.goto('admin-announcements')">
           <div class="qa-title">Post Announcement</div>
@@ -6689,7 +6690,7 @@ ${Permissions.canViewProfit(user) ? `
     };
     
     // ====== Build enriched ranking data with all 5 metrics ======
-    // CS Ranking: Payslip / KPI / KFI / Com / Special Com
+    // CS Ranking: Payslip / KPI / Com / Com / Special Com
     const csUsers = filterByBranch(DB.users().filter(u => (u.role === 'cs' || u.role === 'solo') && !u.inactive && !u.resigned));
     const csRows = csUsers.map(u => {
       const stats = Logic.csStats(u.id, selectedRankMonth);
@@ -6708,7 +6709,7 @@ ${Permissions.canViewProfit(user) ? `
       };
     }).sort((a, b) => b.payslip - a.payslip);
     
-    // Team Ranking: Team's Payslip / KPI / KFI / Com / Special Com
+    // Team Ranking: Team's Payslip / KPI / Com / Com / Special Com
     const teamLeaders = filterByBranch(DB.users().filter(u => (u.role === 'leader' || u.role === 'solo') && !u.inactive && !u.resigned));
     const teamRows = teamLeaders.map(l => {
       const stats = Logic.leaderStats(l.id, selectedRankMonth);
@@ -6741,7 +6742,7 @@ ${Permissions.canViewProfit(user) ? `
             </div>
             <div style="text-align: center;">
               <div style="font-weight: 800; color: var(--primary); font-size: 13px;">${fmtK(r.kfi)}</div>
-              <div class="stat-label" style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; font-weight: 700;">KFI (RM)</div>
+              <div class="stat-label" style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; font-weight: 700;">Com (RM)</div>
             </div>
             <div style="text-align: center;">
               <div style="font-weight: 800; color: var(--accent-deep); font-size: 13px;">${r.com == null ? '—' : fmtK(r.com)}</div>
@@ -6772,7 +6773,7 @@ ${Permissions.canViewProfit(user) ? `
       const within = d => d && d >= ws && d <= we;
       
       // Same rules as monthly: payslip excludes duplicates · KPI by date_submitted
-      // (incl. later rejected/disbursed) · KFI by date_disbursed · unqualified excluded everywhere
+      // (incl. later rejected/disbursed) · Com by date_disbursed · unqualified excluded everywhere
       const weekStats = (list, byLeader) => list.map(u => {
         const cs = DB.cases().filter(c => (byLeader ? c.leader_id === u.id : c.source_cs_id === u.id) && c.status !== 'unqualified');
         return {
@@ -6827,7 +6828,7 @@ ${Permissions.canViewProfit(user) ? `
         <button class="tab ${tab === 'cs' ? 'active' : ''}" onclick="App.setTab('adminRank','cs')">CS Ranking</button>
         <button class="tab ${tab === 'team' ? 'active' : ''}" onclick="App.setTab('adminRank','team')">Team Ranking</button>
       </div>
-      <div style="padding: 10px 20px; font-size: 11px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">${rankPeriod === 'week' ? '📅 Week ' + weekLabel + ' · ' : ''}${tab === 'cs' ? 'Sorted by Payslip count' : 'Sorted by KFI disburse'}</div>
+      <div style="padding: 10px 20px; font-size: 11px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">${rankPeriod === 'week' ? '📅 Week ' + weekLabel + ' · ' : ''}${tab === 'cs' ? 'Sorted by Payslip count' : 'Sorted by Com disburse'}</div>
       
       ${(() => {
         // 🏆 Top-3 Podium
@@ -6869,7 +6870,7 @@ ${Permissions.canViewProfit(user) ? `
       </div>
       
       <div style="padding: 0 20px 20px; font-size: 11px; color: var(--ink-3); line-height: 1.6;">
-        <strong>Legend:</strong> Payslip = collected this month · KPI = submitted to koperasi · KFI = disbursed RM · Com = total commission · Special = bonus from YTAA/KOMUJA/etc.
+        <strong>Legend:</strong> Payslip = collected this month · KPI = submitted to koperasi · Com = disbursed RM · Com = total commission · Special = bonus from YTAA/KOMUJA/etc.
       </div>
     `;
   },
@@ -7204,7 +7205,7 @@ ${Permissions.canViewProfit(user) ? `
       <div class="top-bar">
         <div class="top-bar-row">
           <div class="logo">
-            <div class="awara-mark">AWARA</div>
+            <div class="awara-mark">MANI</div>
             <div class="logo-text"><span class="sdn">New Payslip</span></div>
           </div>
           <button class="avatar" onclick="App.goto('${this.defaultScreen(user)}')" style="background: var(--cream-2); color: var(--ink-2); border-color: var(--border);">x</button>
@@ -7373,7 +7374,7 @@ ${Permissions.canViewProfit(user) ? `
   celebrate(label) {
     try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (_) {}
     this.chaChing();
-    const colors = ['#F5C518', '#FFD93D', '#D4A50E', '#1B6B43', '#FAF7F0'];
+    const colors = ['#F5C518', '#FFD93D', '#D4A50E', '#2C41A0', '#FAF7F0'];
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;';
     let html = '';
@@ -7389,7 +7390,7 @@ ${Permissions.canViewProfit(user) ? `
     }
     html += `<div style="position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);animation:cfBurst 1.6s cubic-bezier(0.34,1.4,0.64,1) forwards;text-align:center;">
       <div style="font-size:56px;filter:drop-shadow(0 8px 24px rgba(245,197,24,0.5));">💰</div>
-      <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--accent);text-shadow:0 2px 16px rgba(0,0,0,0.4);background:rgba(8,64,37,0.85);padding:6px 18px;border-radius:14px;margin-top:6px;">${label || 'Disbursed!'}</div>
+      <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--accent);text-shadow:0 2px 16px rgba(0,0,0,0.4);background:rgba(16,29,82,0.85);padding:6px 18px;border-radius:14px;margin-top:6px;">${label || 'Disbursed!'}</div>
     </div>`;
     wrap.innerHTML = html;
     document.body.appendChild(wrap);
@@ -7534,7 +7535,7 @@ ${Permissions.canViewProfit(user) ? `
         items.push({ t: c.date_submitted + 'y', h: `📤 <b>${esc(who)}</b> submit KPI` });
       }
       if (c.status === 'disbursed' && (c.date_disbursed === today || c.date_disbursed === yest)) {
-        items.push({ t: c.date_disbursed + 'z', h: `🎉 <b>${esc(who)}</b> disbursed KFI <b>RM${fmtK(c.disburse_amount || 0)}</b>` });
+        items.push({ t: c.date_disbursed + 'z', h: `🎉 <b>${esc(who)}</b> disbursed Com <b>RM${fmtK(c.disburse_amount || 0)}</b>` });
       }
     });
     if (items.length === 0) return '';
@@ -7677,8 +7678,8 @@ ${Permissions.canViewProfit(user) ? `
     el.style.cssText = 'position:fixed;top:34%;left:50%;transform:translate(-50%,-50%);z-index:9997;pointer-events:none;text-align:center;animation:cheerIn 1.9s cubic-bezier(0.34,1.4,0.64,1) forwards;';
     el.innerHTML = `
       <div style="font-size:54px;filter:drop-shadow(0 8px 22px rgba(245,197,24,0.5));">${emoji}</div>
-      <div style="font-family:'Fraunces',serif;font-size:21px;font-weight:700;color:var(--accent);background:rgba(8,64,37,0.9);padding:7px 20px;border-radius:14px;margin-top:6px;box-shadow:0 14px 40px rgba(0,0,0,0.35);">${title}</div>
-      ${sub ? `<div style="font-size:11.5px;font-weight:700;color:white;background:rgba(8,64,37,0.75);padding:5px 14px;border-radius:10px;margin-top:5px;display:inline-block;">${sub}</div>` : ''}
+      <div style="font-family:'Fraunces',serif;font-size:21px;font-weight:700;color:var(--accent);background:rgba(16,29,82,0.9);padding:7px 20px;border-radius:14px;margin-top:6px;box-shadow:0 14px 40px rgba(0,0,0,0.35);">${title}</div>
+      ${sub ? `<div style="font-size:11.5px;font-weight:700;color:white;background:rgba(16,29,82,0.75);padding:5px 14px;border-radius:10px;margin-top:5px;display:inline-block;">${sub}</div>` : ''}
     `;
     document.body.appendChild(el);
     try { navigator.vibrate && navigator.vibrate(20); } catch (_) {}
@@ -7748,7 +7749,7 @@ ${Permissions.canViewProfit(user) ? `
         if (v > 0 && (!best || v > best.v)) best = { u, v };
       });
     } else if (metric === 'kfi') {
-      // KFI = disbursed amount credited to the LEADER (leader_id)
+      // Com = disbursed amount credited to the LEADER (leader_id)
       const leaders = DB.users().filter(u => !u.inactive && ['leader', 'solo'].includes(u.role) && inBranch(u));
       leaders.forEach(u => {
         const v = all.filter(x => x.leader_id === u.id && x.status === 'disbursed' && x.date_disbursed >= from && x.date_disbursed <= to).reduce((s, x) => s + (x.disburse_amount || 0), 0);
@@ -7758,7 +7759,7 @@ ${Permissions.canViewProfit(user) ? `
     return best;
   },
   
-  // 🏆 Hall of Fame · last week + last month champions (PS/KPI/KFI)
+  // 🏆 Hall of Fame · last week + last month champions (PS/KPI/Com)
   renderHallOfFame(user) {
     const branchId = Permissions.canViewAllBranches(user) ? null : user.branch_id;
     const memoKey = 'hof_' + (branchId || 'all') + '_' + new Date().toISOString().slice(0, 10);
@@ -7802,11 +7803,11 @@ ${Permissions.canViewProfit(user) ? `
           <span style="background:rgba(245,197,24,0.2);color:var(--accent);font-size:8.5px;font-weight:800;letter-spacing:0.12em;padding:3px 8px;border-radius:7px;">${tag}</span>
           <span style="font-size:9px;color:rgba(250,247,240,0.6);font-weight:700;">${label}</span>
         </div>
-        <div style="display:flex;gap:6px;">${cell('📥', 'PAYSLIP', d.ps, false)}${cell('📤', 'KPI', d.kpi, false)}${cell('💰', 'KFI', d.kfi, true)}</div>
+        <div style="display:flex;gap:6px;">${cell('📥', 'PAYSLIP', d.ps, false)}${cell('📤', 'KPI', d.kpi, false)}${cell('💰', 'Com', d.kfi, true)}</div>
       </div>
     `;
     return `
-      <div style="margin: 12px 20px 0; padding: 14px 14px 14px; background: linear-gradient(160deg, #11402A 0%, #0B2E1E 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 12px 32px rgba(8,40,25,0.35); border: 1px solid rgba(245,197,24,0.18); animation: cardRise 0.5s 0.1s both;">
+      <div style="margin: 12px 20px 0; padding: 14px 14px 14px; background: linear-gradient(160deg, #131F4F 0%, #0D1638 100%); border-radius: 18px; position: relative; overflow: hidden; box-shadow: 0 12px 32px rgba(10,17,45,0.35); border: 1px solid rgba(245,197,24,0.18); animation: cardRise 0.5s 0.1s both;">
         <div style="position:absolute;top:-40px;left:-40px;width:130px;height:130px;background:radial-gradient(circle, rgba(245,197,24,0.18) 0%, transparent 65%);"></div>
         <div style="display:flex;align-items:center;gap:8px;position:relative;">
           <span style="font-size:18px;animation:stepPulse 2.6s ease-in-out infinite;">🏆</span>
@@ -7821,7 +7822,7 @@ ${Permissions.canViewProfit(user) ? `
   // Full-screen splash overlay (tap to dismiss)
   showSplash(html, dur) {
     const el = document.createElement('div');
-    el.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;background:rgba(8,40,25,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:splashFade 0.4s ease;cursor:pointer;padding:24px;';
+    el.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;background:rgba(10,17,45,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:splashFade 0.4s ease;cursor:pointer;padding:24px;';
     el.innerHTML = `<div style="animation:splashPop 0.55s cubic-bezier(0.34,1.45,0.64,1);max-width:340px;width:100%;">${html}</div>`;
     el.onclick = () => el.remove();
     document.body.appendChild(el);
@@ -7847,7 +7848,7 @@ ${Permissions.canViewProfit(user) ? `
             <div style="font-size:62px;animation:stepPulse 1.6s ease-in-out infinite;">🎂</div>
             <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:white;margin-top:8px;">Selamat Hari Jadi!</div>
             <div style="font-size:17px;font-weight:800;color:rgba(255,255,255,0.95);margin-top:4px;">${esc(user.name)} 🎉</div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:10px;font-weight:600;">Seluruh team AWARA wish you all the best! 🥳</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:10px;font-weight:600;">Seluruh team MANI wish you all the best! 🥳</div>
           </div>
         `, 5000);
         return;
@@ -7861,13 +7862,13 @@ ${Permissions.canViewProfit(user) ? `
             <div style="font-size:62px;animation:stepPulse 1.8s ease-in-out infinite;">${fest.e}</div>
             <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:white;margin-top:8px;">${esc(fest.n)}</div>
             <div style="font-size:14px;color:rgba(255,255,255,0.95);margin-top:8px;font-weight:600;line-height:1.5;">${esc(fest.m)}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:12px;font-weight:600;">— Keluarga besar AWARA 💚</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:12px;font-weight:600;">— Keluarga besar MANI 💚</div>
           </div>
         `, 4500);
         return;
       }
       
-      // 3 · 👑 Monday champion reveal — 3 categories (Payslip / KPI / KFI)
+      // 3 · 👑 Monday champion reveal — 3 categories (Payslip / KPI / Com)
       if (new Date().getDay() === 1) {
         const branchId = Permissions.canViewAllBranches(user) ? null : user.branch_id;
         // Last full week (Mon–Sun)
@@ -7902,7 +7903,7 @@ ${Permissions.canViewProfit(user) ? `
               <div style="font-size:11px;color:rgba(250,247,240,0.65);font-weight:700;margin-top:2px;">${label}</div>
               ${podium(champPs, '📥', 'Top Payslip', false)}
               ${podium(champKpi, '📤', 'Top KPI', false)}
-              ${podium(champKfi, '💰', 'Top KFI', true)}
+              ${podium(champKfi, '💰', 'Top Com', true)}
               <div style="font-size:11px;color:rgba(250,247,240,0.7);margin-top:14px;font-weight:600;">${iAmChamp ? 'Anda juara! Pertahankan takhta minggu ini 💪' : 'Minggu baru · peluang baru. Rampas takhta! ⚔️'}</div>
             </div>
           `, 5500);
@@ -9069,7 +9070,7 @@ if (!Permissions.canViewAllBranches(user)) {
           ${pkg ? `<span class="badge">${pkg.name} · RM ${fmt(c.loan_amount)}</span>` : '<span class="badge" style="background: var(--accent); color: var(--primary-dark);">Stage 1 only</span>'}
           ${c.status === 'pending' && c.pending_reason ? `<span class="badge" style="background: #F0E4FF; color: #6B3FB8;">${esc(c.pending_reason.substring(0, 30))}${c.pending_reason.length > 30 ? '...' : ''}</span>` : ''}
           ${c.status === 'rejected' && c.rejection_reason ? `<span class="badge no-com">${esc(c.rejection_reason.substring(0, 30))}${c.rejection_reason.length > 30 ? '...' : ''}</span>` : ''}
-          ${c.status === 'disbursed' && c.disburse_amount ? `<span class="badge com">RM ${fmtK(c.disburse_amount)} KFI</span>` : ''}
+          ${c.status === 'disbursed' && c.disburse_amount ? `<span class="badge com">RM ${fmtK(c.disburse_amount)} Com</span>` : ''}
         </div>
       </div>
     `;
@@ -10143,7 +10144,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
       
       <div class="kpi-grid" style="margin-top: 14px;">
         <div class="kpi-card featured">
-          <div class="label">Company KFI This Week</div>
+          <div class="label">Company Com This Week</div>
           <div class="value"><span class="currency">RM</span>${fmtK(totals.kfi)}</div>
           <div class="sub">${totals.kfiCount} disbursed · 6 Teams</div>
         </div>
@@ -10184,7 +10185,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
             </div>
             <div style="text-align: right;">
               <div style="font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; color: ${t.kfi > 0 ? 'var(--accent-deep)' : 'var(--ink-3)'};">RM ${fmtK(t.kfi)}</div>
-              <div style="font-size: 9px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">KFI</div>
+              <div style="font-size: 9px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">Com</div>
             </div>
           </div>
           <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding-top: 10px; border-top: 1px solid var(--border-2);">
@@ -10239,7 +10240,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     
     const rows = [['Week', `${report.weekStart} to ${report.weekEnd}`]];
     rows.push([]);
-    rows.push(['Team Leader', 'Type', 'KFI (RM)', 'KFI Count', 'Calling', 'WhatsApp', 'Payslip', 'Submit', 'Closing', 'Potential (RM)', 'Rejected', 'Members']);
+    rows.push(['Team Leader', 'Type', 'Com (RM)', 'Com Count', 'Calling', 'WhatsApp', 'Payslip', 'Submit', 'Closing', 'Potential (RM)', 'Rejected', 'Members']);
     report.teamData.forEach(t => {
       rows.push([
         t.leader.name,
@@ -10405,7 +10406,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     const KIND = {
       announce: { e: '📢', l: 'Pengumuman', c: '#B8860B' },
       question: { e: '❓', l: 'Soalan', c: '#2563EB' },
-      discuss: { e: '💬', l: 'Bincang', c: '#1B6B43' },
+      discuss: { e: '💬', l: 'Bincang', c: '#2C41A0' },
       share: { e: '💡', l: 'Kongsi', c: '#7C3AED' }
     };
     const filter = this.state.komunitiFilter || 'all';
@@ -10450,7 +10451,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
           const resolved = t.kind === 'question' && t.status === 'resolved';
           return `
             <div onclick="App.openTopic('${t.id}')" style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: all 0.18s; position: relative; ${t.pinned ? 'border-color: rgba(245,197,24,0.5); box-shadow: 0 2px 12px rgba(245,197,24,0.12);' : ''}" 
-                 onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 22px rgba(15,81,50,0.1)'" 
+                 onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 22px rgba(27,44,116,0.1)'" 
                  onmouseout="this.style.transform='';this.style.boxShadow=this.style.boxShadow.includes('245') ? '0 2px 12px rgba(245,197,24,0.12)' : 'none'">
               ${t.pinned ? '<span style="position:absolute;top:-7px;right:14px;background:var(--accent);color:var(--primary-dark);font-size:9px;font-weight:800;padding:2px 8px;border-radius:7px;">📌 PINNED</span>' : ''}
               <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 7px;">
@@ -10537,7 +10538,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
     const KIND = {
       announce: { e: '📢', l: 'Pengumuman', c: '#B8860B' },
       question: { e: '❓', l: 'Soalan', c: '#2563EB' },
-      discuss: { e: '💬', l: 'Bincang', c: '#1B6B43' },
+      discuss: { e: '💬', l: 'Bincang', c: '#2C41A0' },
       share: { e: '💡', l: 'Kongsi', c: '#7C3AED' }
     };
     const k = KIND[t.kind] || KIND.discuss;
@@ -10837,7 +10838,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
           <div style="position:relative;">
             <div style="font-size:10px;color:rgba(255,255,255,0.92);text-transform:uppercase;letter-spacing:0.14em;font-weight:800;">${fest.e} ${esc(fest.n)}</div>
             <div style="font-size:14px;color:white;margin-top:5px;font-weight:700;line-height:1.45;">${esc(fest.m)}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.75);margin-top:6px;font-weight:600;">— Daripada keluarga besar AWARA 💚</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.75);margin-top:6px;font-weight:600;">— Daripada keluarga besar MANI 💚</div>
           </div>
         </div>
       `;
@@ -10883,7 +10884,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
           <div style="margin: 14px 20px 0; background: #FCE8E6; border-left: 4px solid var(--danger); border-radius: 12px; padding: 14px 16px;">
             <strong style="font-size: 10px; color: var(--danger); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 800;">⚠ Low Performance Warning</strong>
             <div style="font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; color: var(--ink); margin: 4px 0;">Anda kurang aktif bulan ini</div>
-            <div style="font-size: 12px; color: var(--ink-2); line-height: 1.5;">KFI sekarang: <strong>RM ${fmt(stats.kfiAmount)}</strong> · Bawah min baseline RM ${fmt(t.low)}. Perlu push <strong>RM ${fmt(gap)}</strong> lagi untuk tier minimum.</div>
+            <div style="font-size: 12px; color: var(--ink-2); line-height: 1.5;">Com sekarang: <strong>RM ${fmt(stats.kfiAmount)}</strong> · Bawah min baseline RM ${fmt(t.low)}. Perlu push <strong>RM ${fmt(gap)}</strong> lagi untuk tier minimum.</div>
           </div>`;
       } else {
         const stats = Logic.csStats(user.id);
@@ -10903,7 +10904,7 @@ if (currentUser.role === 'hq' && targetUser?.role === 'admin') {
           <div style="margin: 14px 20px 0; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-left: 4px solid var(--success); border-radius: 12px; padding: 14px 16px;">
             <strong style="font-size: 10px; color: var(--success); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 800;">🔥 Great Performance!</strong>
             <div style="font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; color: var(--ink); margin: 4px 0;">Anda sangat aktif bulan ini!</div>
-            <div style="font-size: 12px; color: var(--ink-2); line-height: 1.5;">KFI: <strong>RM ${fmt(stats.kfiAmount)}</strong>. Push <strong>RM ${fmt(t.excellent - stats.kfiAmount)}</strong> lagi untuk reach excellence tier!</div>
+            <div style="font-size: 12px; color: var(--ink-2); line-height: 1.5;">Com: <strong>RM ${fmt(stats.kfiAmount)}</strong>. Push <strong>RM ${fmt(t.excellent - stats.kfiAmount)}</strong> lagi untuk reach excellence tier!</div>
           </div>`;
       } else {
         const stats = Logic.csStats(user.id);
@@ -11403,11 +11404,11 @@ ${(this.state.exportFrom || this.state.exportTo) ? '<div style="font-size: 11px;
         
         <div class="qa-card" onclick="App.exportReport('performance')">
           <div class="qa-title">📊 Report A · Per-Staff Performance</div>
-          <div class="qa-sub">Each CS/Leader: Payslip / KPI / KFI / Reject / Commission</div>
+          <div class="qa-sub">Each CS/Leader: Payslip / KPI / Com / Reject / Commission</div>
         </div>
         <div class="qa-card" onclick="App.exportReport('submitted')">
           <div class="qa-title">📋 Report B · All Submitted Cases</div>
-          <div class="qa-sub">Date, Customer, IC, Package, Loan, KFI, Status${this.state.exportStatus && this.state.exportStatus !== 'all' ? ` · Filtered to ${STATUS_LABELS[this.state.exportStatus]}` : ''}</div>
+          <div class="qa-sub">Date, Customer, IC, Package, Loan, Com, Status${this.state.exportStatus && this.state.exportStatus !== 'all' ? ` · Filtered to ${STATUS_LABELS[this.state.exportStatus]}` : ''}</div>
         </div>
         <div class="qa-card" onclick="App.exportReport('disbursed')">
           <div class="qa-title">💰 Report C · Disbursement List</div>
@@ -11745,7 +11746,7 @@ async handleImportCSV(event) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'AWARA_Import_Template.csv';
+    a.download = 'MANI_Import_Template.csv';
     a.click();
     URL.revokeObjectURL(url);
     toast('✓ Template downloaded · isi data, save as CSV, upload balik');
@@ -11781,7 +11782,7 @@ let rows = [];
       rows.push(['MONTHLY PERFORMANCE REPORT', ym]);
       rows.push(['Generated:', new Date().toLocaleString('en-MY')]);
       rows.push([]);
-      rows.push(['Name', 'Role', 'Branch', 'Team', 'Payslip', 'Duplicates', 'Submit (KPI)', 'Disburse', 'Reject', 'KFI (RM)', 'PS Comm (RM)', 'Submit Comm (RM)', 'KFI Comm (RM)', 'Total Comm (RM)']);
+      rows.push(['Name', 'Role', 'Branch', 'Team', 'Payslip', 'Duplicates', 'Submit (KPI)', 'Disburse', 'Reject', 'Com (RM)', 'PS Comm (RM)', 'Submit Comm (RM)', 'Com Comm (RM)', 'Total Comm (RM)']);
       
       let targets = staff === 'all' 
         ? DB.users().filter(u => u.role !== 'admin')
@@ -11885,7 +11886,7 @@ if (type === 'disbursed') {
         const csUser = DB.user(csId);
 const leaderUser = DB.user(csUser?.leader_id);
 const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id === (csUser?.branch_id || leaderUser?.branch_id)) || leaderUser;
-        const baseHeaders = ['', 'MANAGER NAME', 'STAFF NAME', 'CUST NAME', 'NO IC', 'PACKAGE', 'AMOUNT LOAN', 'STAFF KFI', 'DISBURSED DATE'];
+        const baseHeaders = ['', 'MANAGER NAME', 'STAFF NAME', 'CUST NAME', 'NO IC', 'PACKAGE', 'AMOUNT LOAN', 'STAFF Com', 'DISBURSED DATE'];
         if (showProfit) {
           baseHeaders.push('COMMISSION %', 'COMPANY PROFIT (RM)');
         }
@@ -11926,7 +11927,7 @@ const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id ===
     }
 
     if (type === 'daily-submission') {
-      filename = `AWARA_Daily_Submission_${dateLabel}.csv`;
+      filename = `MANI_Daily_Submission_${dateLabel}.csv`;
 
       let cases = DB.cases();if (branchFilter) cases = cases.filter(c => c.branch_id === branchFilter);
       if (staff !== 'all') cases = cases.filter(c => c.source_cs_id === staff || c.leader_id === staff);
@@ -11943,7 +11944,7 @@ const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id ===
       rows.push(['DAILY SUBMISSION', dateLabel]);
       rows.push(['Generated:', new Date().toLocaleString('en-MY')]);
       rows.push([]);
-      rows.push(['NO', 'DATE EMAIL', 'STAFF', 'NAMA CUSTOMER', 'NO IC', 'NO H/P', 'PACKAGE', 'TENURE', 'LOAN AMOUNT', 'KFI', 'ANM', 'HRMIS', 'PAYOUT', 'APPROVED AMOUNT', 'APPROVED DATE', 'DISBURSE DATE', 'MAJIKAN', 'DATE POSTAGE', 'POSTAGE NUMBER', 'DATE RECEIVE', 'STATUS / REMARK', 'REMARK ADMIN']);
+      rows.push(['NO', 'DATE EMAIL', 'STAFF', 'NAMA CUSTOMER', 'NO IC', 'NO H/P', 'PACKAGE', 'TENURE', 'LOAN AMOUNT', 'Com', 'ANM', 'HRMIS', 'PAYOUT', 'APPROVED AMOUNT', 'APPROVED DATE', 'DISBURSE DATE', 'MAJIKAN', 'DATE POSTAGE', 'POSTAGE NUMBER', 'DATE RECEIVE', 'STATUS / REMARK', 'REMARK ADMIN']);
 
       let no = 1;
       cases.forEach(c => {
@@ -12593,19 +12594,19 @@ const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id ===
         </div>
       </div>
       
-      <div class="section-header"><div class="section-title">💰 Commission · Team Leader KFI Tiers</div></div>
+      <div class="section-header"><div class="section-title">💰 Commission · Team Leader Com Tiers</div></div>
       <div style="padding: 0 20px;">
         <div style="background: var(--cream-2); border-radius: 14px; padding: 14px; border: 1px solid var(--border-2);">
-          <div style="font-size: 11px; color: var(--ink-3); margin-bottom: 10px;">Team Leader dapat % dari KFI disburse bila reach tier. Cth: RM 320,000 × 0.9% = RM 2,880.</div>
-          ${this.renderTierEditor('leader_kfi', draft.commission.leader_kfi, 'KFI Disburse (RM)', '% rate', 'rate', 0.01)}
+          <div style="font-size: 11px; color: var(--ink-3); margin-bottom: 10px;">Team Leader dapat % dari Com disburse bila reach tier. Cth: RM 320,000 × 0.9% = RM 2,880.</div>
+          ${this.renderTierEditor('leader_kfi', draft.commission.leader_kfi, 'Com Disburse (RM)', '% rate', 'rate', 0.01)}
         </div>
       </div>
       
-      <div class="section-header"><div class="section-title">💰 Commission · Solo Leader KFI Tiers</div></div>
+      <div class="section-header"><div class="section-title">💰 Commission · Solo Leader Com Tiers</div></div>
       <div style="padding: 0 20px;">
         <div style="background: var(--cream-2); border-radius: 14px; padding: 14px; border: 1px solid var(--border-2);">
           <div style="font-size: 11px; color: var(--ink-3); margin-bottom: 10px;">Solo Leaders pakai half thresholds (sebab no team). Cth: RM 160,000 × 0.9% = RM 1,440.</div>
-          ${this.renderTierEditor('solo_kfi', draft.commission.solo_kfi, 'KFI Disburse (RM)', '% rate', 'rate', 0.01)}
+          ${this.renderTierEditor('solo_kfi', draft.commission.solo_kfi, 'Com Disburse (RM)', '% rate', 'rate', 0.01)}
         </div>
       </div>
       
@@ -12669,7 +12670,7 @@ const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id ===
           </div>
         </div>
         <div style="background: var(--cream-2); border-radius: 14px; padding: 14px; border: 1px solid var(--border-2); margin-bottom: 10px;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Team Leader (KFI RM)</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Team Leader (Com RM)</div>
           <div class="form-row">
             <div class="form-group">
               <label>Low (RM)</label>
@@ -12686,7 +12687,7 @@ const managerUser = DB.users().find(u => u.role === 'manager' && u.branch_id ===
           </div>
         </div>
         <div style="background: var(--cream-2); border-radius: 14px; padding: 14px; border: 1px solid var(--border-2);">
-          <div style="font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Solo Leader (KFI RM)</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Solo Leader (Com RM)</div>
           <div class="form-row">
             <div class="form-group">
               <label>Low (RM)</label>
@@ -13225,7 +13226,7 @@ removeListItem(key, idx) {
     if (!newStatus) { toast('Sila pilih status'); return; }
 
     // 'disbursed' requires a per-case payout amount + disburse date. Doing it in bulk
-    // would create disbursed cases with NO amount → silently missing from KFI / commission / profit.
+    // would create disbursed cases with NO amount → silently missing from Com / commission / profit.
     // Force the single-case Disburse flow instead.
     if (newStatus === 'disbursed') {
       toast('⚠ Disbursed perlu amount setiap case · guna butang Disburse satu-satu');
@@ -13243,7 +13244,7 @@ removeListItem(key, idx) {
         if (!c) { fail++; return; }
         const updates = { status: newStatus };
         // Stamp the milestone date that the per-status forms would normally set,
-        // so monthly KPI (date_submitted), KFI/disburse (date_disbursed) and
+        // so monthly KPI (date_submitted), Com/disburse (date_disbursed) and
         // reject (date_rejected) counters all stay accurate after a bulk change.
         if (newStatus === 'contacted' && !c.date_contacted) updates.date_contacted = today;
         if (newStatus === 'proposed'  && !c.date_proposed)  updates.date_proposed  = today;
@@ -13557,7 +13558,7 @@ removeListItem(key, idx) {
               <div style="font-size:22px;font-weight:800;color:var(--primary);">${submittedThisMonth}</div>
             </div>
             <div style="background:var(--cream);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:10px;color:var(--ink-3);">Disbursed (KFI)</div>
+              <div style="font-size:10px;color:var(--ink-3);">Disbursed (Com)</div>
               <div style="font-size:13px;font-weight:800;color:var(--accent-deep);">RM ${disbursedAmount.toLocaleString()}</div>
               <div style="font-size:9px;color:var(--ink-3);">${disbursedThisMonth.length} cases</div>
             </div>
@@ -13667,7 +13668,7 @@ removeListItem(key, idx) {
       const url = URL.createObjectURL(blob);
       
       const today = new Date().toISOString().slice(0, 10);
-      const filename = `AWARA_backup_${today}.json`;
+      const filename = `MANI_backup_${today}.json`;
       
       const a = document.createElement('a');
       a.href = url;
@@ -14142,7 +14143,7 @@ setTimeout(() => {
       const status = window.__firebaseStatus || { stage: 'unknown' };
       el.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; padding: 40px; text-align: center;">
-          <div style="font-family: 'Archivo Black', sans-serif; color: var(--primary); font-size: 32px; margin-bottom: 8px;">AWARA</div>
+          <div style="font-family: 'Archivo Black', sans-serif; color: var(--primary); font-size: 32px; margin-bottom: 8px;">MANI</div>
           <div style="font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 30px;">Connecting to cloud...</div>
           <div style="width: 40px; height: 40px; border: 3px solid var(--cream-3); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
           <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
